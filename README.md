@@ -25,7 +25,7 @@ This project demonstrates a hybrid blockchain architecture. Deterministic on-cha
 
 ```mermaid
 graph TD
-    subgraph Off-Chain (AI Decision-Making)
+    subgraph "Off-Chain (AI Decision-Making)"
         GeminiAPI[Gemini 2.5 Pro API]
         OptimizerBot[Optimizer Bot]
         PriceKeeperBot[Price Keeper Bot]
@@ -37,7 +37,7 @@ graph TD
         GeminiAPI --(JSON response with price)--> PriceKeeperBot
     end
 
-    subgraph On-Chain (Solana)
+    subgraph "On-Chain (Solana)"
         AffiliateProgram[Affiliate Program]
         BarterDEX[Barter DEX Program]
         FactoryProgram[Factory Program]
