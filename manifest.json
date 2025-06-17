@@ -1,0 +1,69 @@
+{
+  "schemaName": "solana-monorepo-manifest",
+  "schemaVersion": "2.0.0",
+  "repositoryName": "solana-launchpad-ecosystem-rust",
+  "systemOverview": "A multi-program Solana ecosystem written in Rust, architected for AI-driven tokenomics. Core economic parameters, such as DEX pricing and affiliate commissions, are not calculated on-chain but are provided by off-chain bots using the Gemini 2.5 Pro API. This creates a hybrid system where on-chain programs act as executors for AI-generated instructions.",
+  "components": [
+    {
+      "name": "factory-program",
+      "path": "programs/factory-program",
+      "programId": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+      "type": "on-chain-program",
+      "purpose": "Acts as a token launchpad using a bonding curve model. It is the mint authority for new tokens and processes purchases.",
+      "cpiInteractions": [
+        {
+          "targetProgramName": "affiliate-program",
+          "targetProgramId": "AFFLiateiGR4sC1VbN9s3M1hA9gRPEc2iEM5y1N2u1j6a",
+          "instruction": "process_commission",
+          "trigger": "A token purchase is made with a valid affiliate key."
+        }
+      ]
+    },
+    {
+      "name": "affiliate-program",
+      "path": "programs/affiliate-program",
+      "programId": "AFFLiateiGR4sC1VbN9s3M1hA9gRPEc2iEM5y1N2u1j6a",
+      "type": "on-chain-program",
+      "purpose": "Manages affiliate data. The core logic for setting commission rates has been externalized to the `optimizer-bot`.",
+      "cpiInteractions": []
+    },
+    {
+      "name": "barter-dex-program",
+      "path": "programs/barter-dex-program",
+      "programId": "DEXy2D1fVf5s3f2y6D4b7j8N1M5P9kH3rW7T4gS6fX8a",
+      "type": "on-chain-program",
+      "purpose": "An oracle-based DEX. It does not contain an internal pricing formula (like AMM). Instead, it relies on a trusted `price-keeper-bot` to push AI-generated exchange rates on-chain via the `update_oracle_price` instruction. Swaps are executed at this oracle price.",
+      "cpiInteractions": []
+    },
+    {
+      "name": "optimizer-bot",
+      "path": "bots/optimizer-bot",
+      "type": "off-chain-service",
+      "purpose": "Uses the Gemini 2.5 Pro API to determine the optimal commission rate for affiliates. It prompts the AI with on-chain data (sales volume, token price) and sends a transaction to the `affiliate-program` to update the rate.",
+      "interactsWith": ["affiliate-program"]
+    },
+    {
+      "name": "price-keeper-bot",
+      "path": "bots/price-keeper-bot",
+      "type": "off-chain-service",
+      "purpose": "Acts as the price oracle for the DEX. It periodically prompts the Gemini 2.5 Pro API to get the fair market exchange rate for token pairs and pushes this price on-chain by calling the `update_oracle_price` instruction in the `barter-dex-program`."
+    }
+  ],
+  "sharedCrates": [
+    {
+      "name": "genesis-common",
+      "path": "crates/genesis-common",
+      "purpose": "A shared library containing constants (e.g., PDA seeds) used across all on-chain programs."
+    }
+  ],
+  "keyConcepts": [
+    {
+      "term": "AI Oracle",
+      "definition": "A design pattern where an off-chain service (bot) uses an external AI/LLM (like Gemini) to determine a value (e.g., price, rate) and writes it to the blockchain. On-chain programs then read this value trustfully."
+    },
+    {
+      "term": "Hybrid Architecture",
+      "definition": "The combination of deterministic on-chain programs (for asset settlement and state storage) and flexible off-chain AI services (for decision-making and intelligence)."
+    }
+  ]
+}

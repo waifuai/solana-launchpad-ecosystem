@@ -1,0 +1,20 @@
+[package]
+name = "price-keeper-bot"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# High-level asynchronous runtime.
+tokio = { version = "1", features = ["full"] }
+# Official Solana SDK.
+solana-sdk = "1.17.15"
+# Anchor's off-chain client.
+anchor-client = "0.28.0"
+# Barter DEX program crate for type definitions and program ID.
+barter-dex-program = { path = "../../programs/barter-dex-program" }
+# HTTP client to call the Gemini API.
+reqwest = "0.12"
+# For JSON serialization and deserialization.
+serde_json = "1.0"
+# For expanding tilde in file paths.
+shellexpand = "3.1.0"

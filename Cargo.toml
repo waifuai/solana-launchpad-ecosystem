@@ -1,0 +1,34 @@
+[workspace]
+members = [
+    "programs/factory-program",
+    "programs/affiliate-program",
+    "programs/barter-dex-program",
+    "crates/genesis-common",
+    "bots/optimizer-bot",
+    "bots/price-keeper-bot"
+]
+
+[profile.release]
+overflow-checks = true
+lto = "fat"
+codegen-units = 1
+[profile.release.build-override]
+opt-level = 3
+incremental = false
+codegen-units = 1
+
+# Dependencies for our multi-program Rust integration test
+[dev-dependencies]
+solana-program-test = "1.17.15"
+solana-sdk = "1.17.15"
+tokio = { version = "1", features = ["full"] }
+assert_matches = "1.5.0"
+anchor-lang = "0.28.0"
+anchor-spl = "0.28.0"
+spl-token = "4.0.0"
+spl-associated-token-account = "2.2.0"
+
+# Workspace dependencies to resolve version conflicts
+[workspace.dependencies]
+anchor-lang = "0.28.0"
+anchor-spl = "0.28.0"

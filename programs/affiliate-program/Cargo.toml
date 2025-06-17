@@ -1,0 +1,24 @@
+[package]
+name = "affiliate-program"
+version = "0.1.0"
+description = "Created with Anchor"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "affiliate_program"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+# The core Anchor framework for Solana program development.
+anchor-lang = { workspace = true }
+# Anchor's helpers for interacting with SPL programs like the Token Program.
+anchor-spl = { workspace = true }
+# Shared constants (PDA seeds) for the ecosystem.
+genesis-common = { path = "../../crates/genesis-common" }

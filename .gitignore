@@ -1,0 +1,19 @@
+# Rust
+target/
+Cargo.lock
+
+# Anchor
+.anchor/
+node_modules/
+dist/
+test-ledger/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+
+# Environment
+.env

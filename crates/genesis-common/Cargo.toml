@@ -1,0 +1,8 @@
+[package]
+name = "genesis-common"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# The core Anchor framework for Solana program development.
+anchor-lang = { workspace = true }
