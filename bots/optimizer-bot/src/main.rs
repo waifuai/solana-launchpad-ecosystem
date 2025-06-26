@@ -131,56 +131,48 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let program: Program = client.program(affiliate_program::id());
 
     let http_client = reqwest::Client::new();
-    println!("Optimizer Bot Started with Gemini AI Engine. Press Ctrl+C to exit.");
-
-    // --- Main bot loop ---
-    loop {
-        println!("\n--- Optimizer Cycle ---");
-        
-        // Step 1: Find and fetch the affiliate's on-chain data.
-        let (affiliate_info_pda, _) = Pubkey::find_program_address(&[b"affiliate_info", affiliate_to_manage.pubkey().as_ref()], &affiliate_program::id());
-        
-        let info_account: affiliate_program::AffiliateInfo = match program.account(affiliate_info_pda).await {
-            Ok(acc) => acc,
-            Err(_) => {
-                println!("Affiliate not registered. Skipping cycle.");
-                sleep(Duration::from_secs(60)).await;
-                continue;
-            }
-        };
-
-        println!("Fetched on-chain data: rate={} bps, volume={}", info_account.commission_rate_bps, info_account.total_referred_volume);
-
-        // Step 2: Call Gemini API to get the new optimal rate.
-        match get_commission_rate_from_gemini(&http_client, &api_key, &affiliate_to_manage.pubkey(), info_account.commission_rate_bps, info_account.total_referred_volume).await {
-            Ok(new_rate_bps) => {
-                println!("Gemini AI suggested new rate: {} bps", new_rate_bps);
-
-                if new_rate_bps == info_account.commission_rate_bps {
-                    println!("Rate is already optimal. No update needed.");
-                } else {
-                    // Step 3: Send transaction to update the on-chain state.
-                    println!("Sending transaction to update rate...");
-                    let tx_signature = program
-                        .request()
-                        .signer(affiliate_to_manage.as_ref())
-                        .accounts(SetCommissionRate {
-                            affiliate_info: affiliate_info_pda,
-                            affiliate_key: affiliate_to_manage.pubkey(),
-                        })
-                        .args(SetCommissionRateInstruction { new_rate_bps })
-                        .send()
-                        .await;
-
-                    match tx_signature {
-                        Ok(sig) => println!("Transaction successful! Signature: {}", sig),
-                        Err(e) => eprintln!("Transaction failed: {}", e),
-                    }
-                }
-            },
-            Err(e) => eprintln!("Failed to get rate from Gemini: {}", e),
+    println!("\n--- Starting Optimizer Update Cycle ---");
+    
+    let (affiliate_info_pda, _) = Pubkey::find_program_address(&[b"affiliate_info", affiliate_to_manage.pubkey().as_ref()], &affiliate_program::id());
+    
+    let info_account: affiliate_program::AffiliateInfo = match program.account(affiliate_info_pda).await {
+        Ok(acc) => acc,
+        Err(_) => {
+            println!("Affiliate not registered. Exiting.");
+            return Ok(());
         }
+    };
 
-        sleep(Duration::from_secs(60)).await;
+    println!("Fetched on-chain data: rate={} bps, volume={}", info_account.commission_rate_bps, info_account.total_referred_volume);
+
+    match get_commission_rate_from_gemini(&http_client, &api_key, &affiliate_to_manage.pubkey(), info_account.commission_rate_bps, info_account.total_referred_volume).await {
+        Ok(new_rate_bps) => {
+            println!("Gemini AI suggested new rate: {} bps", new_rate_bps);
+
+            if new_rate_bps == info_account.commission_rate_bps {
+                println!("Rate is already optimal. No update needed.");
+            } else {
+                println!("Sending transaction to update rate...");
+                let tx_signature = program
+                    .request()
+                    .signer(affiliate_to_manage.as_ref())
+                    .accounts(SetCommissionRate {
+                        affiliate_info: affiliate_info_pda,
+                        affiliate_key: affiliate_to_manage.pubkey(),
+                    })
+                    .args(SetCommissionRateInstruction { new_rate_bps })
+                    .send()
+                    .await;
+
+                match tx_signature {
+                    Ok(sig) => println!("Transaction successful! Signature: {}", sig),
+                    Err(e) => eprintln!("Transaction failed: {}", e),
+                }
+            }
+        },
+        Err(e) => eprintln!("Failed to get rate from Gemini: {}", e),
     }
+
+    println!("\n--- Update Cycle Complete ---");
+    Ok(())
 }

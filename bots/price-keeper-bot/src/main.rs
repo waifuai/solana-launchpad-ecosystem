@@ -120,58 +120,49 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let payer_kp_path = shellexpand::tilde("~/.config/solana/id.json").to_string();
     let payer = Rc::new(Keypair::from_json(&fs::read_to_string(&payer_kp_path)?)?);
-    
-    // This keypair must be the designated oracle_authority for the pools it manages.
+
     let oracle_authority = Rc::new(Keypair::from_json(&std::fs::read_to_string(&payer_kp_path)?)?);
-    println!("Price Keeper Bot starting with authority: {}", oracle_authority.pubkey());
+    println!("Price Keeper starting with authority: {}", oracle_authority.pubkey());
 
     let client = Client::new(Cluster::Localnet, payer.clone());
     let program: Program = client.program(barter_dex_program::id());
     let http_client = reqwest::Client::new();
 
-    println!("Price Keeper Bot Started with Gemini AI Engine. Press Ctrl+C to exit.");
+    println!("\n--- Starting Price Keeper Update Cycle ---");
 
-    loop {
-        println!("\n--- Price Keeper Cycle ---");
-        
-        // Step 1: Fetch all liquidity pool accounts.
-        let pool_accounts: Vec<(Pubkey, barter_dex_program::LiquidityPool)> = program.accounts(vec![]).await?;
-        if pool_accounts.is_empty() {
-            println!("No liquidity pools found. Skipping cycle.");
-            sleep(Duration::from_secs(60)).await;
-            continue;
-        }
-
-        for (pool_pda, pool_data) in pool_accounts {
-            println!("Processing pool for {} <-> {}", pool_data.mint_a, pool_data.mint_b);
-
-            // Step 2: Call Gemini API to get the new exchange rate.
-            match get_exchange_rate_from_gemini(&http_client, &api_key, &pool_data.mint_a, &pool_data.mint_b).await {
-                Ok(new_price) => {
-                    println!("Gemini AI suggested new price: {}", new_price);
-                    
-                    // Step 3: Send transaction to update the on-chain oracle price.
-                    println!("Sending transaction to update on-chain price...");
-                    let tx_signature = program
-                        .request()
-                        .signer(oracle_authority.as_ref())
-                        .accounts(UpdateOraclePrice {
-                            pool: pool_pda,
-                            oracle_authority: oracle_authority.pubkey(),
-                        })
-                        .args(UpdateOraclePriceInstruction { new_price })
-                        .send()
-                        .await;
-
-                    match tx_signature {
-                        Ok(sig) => println!("Price update successful! Signature: {}", sig),
-                        Err(e) => eprintln!("Price update transaction failed: {}", e),
-                    }
-                },
-                Err(e) => eprintln!("Failed to get price from Gemini for pool {}: {}", pool_pda, e),
-            }
-        }
-
-        sleep(Duration::from_secs(60)).await;
+    let pool_accounts: Vec<(Pubkey, barter_dex_program::LiquidityPool)> = program.accounts(vec![]).await?;
+    if pool_accounts.is_empty() {
+        println!("No liquidity pools found. Exiting.");
+        return Ok(());
     }
+
+    for (pool_pda, pool_data) in pool_accounts {
+        println!("\nProcessing pool for {} <-> {}", pool_data.mint_a, pool_data.mint_b);
+
+        match get_exchange_rate_from_gemini(&http_client, &api_key, &pool_data.mint_a, &pool_data.mint_b).await {
+            Ok(new_price) => {
+                println!("Gemini AI suggested new price: {}", new_price);
+                println!("Sending transaction to update on-chain price...");
+                let tx_signature = program
+                    .request()
+                    .signer(oracle_authority.as_ref())
+                    .accounts(UpdateOraclePrice {
+                        pool: pool_pda,
+                        oracle_authority: oracle_authority.pubkey(),
+                    })
+                    .args(UpdateOraclePriceInstruction { new_price })
+                    .send()
+                    .await;
+
+                match tx_signature {
+                    Ok(sig) => println!("Price update successful! Signature: {}", sig),
+                    Err(e) => eprintln!("Price update transaction failed: {}", e),
+                }
+            },
+            Err(e) => eprintln!("Failed to get price from Gemini for pool {}: {}", pool_pda, e),
+        }
+    }
+
+    println!("\n--- Update Cycle Complete ---");
+    Ok(())
 }
