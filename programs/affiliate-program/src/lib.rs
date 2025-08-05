@@ -8,7 +8,7 @@ pub mod error;
 use state::*;
 use error::*;
 
-declare_id!("AFFLiateiGR4sC1VbN9s3M1hA9gRPEc2iEM5y1N2u1j6a");
+declare_id!("Aff1aTe111111111111111111111111111111111111"); // 32-byte base58 placeholder for local tests
 
 #[program]
 pub mod affiliate_program {

@@ -6,10 +6,10 @@ edition = "2021"
 [dependencies]
 # High-level asynchronous runtime.
 tokio = { version = "1", features = ["full"] }
-# Official Solana SDK.
-solana-sdk = "1.17.15"
-# Anchor's off-chain client.
-anchor-client = "0.28.0"
+# Solana SDK aligned with Anchor 0.31.x
+solana-sdk = "2.3.1"
+# Anchor's off-chain client (latest)
+anchor-client = "0.31.1"
 # Barter DEX program crate for type definitions and program ID.
 barter-dex-program = { path = "../../programs/barter-dex-program" }
 # HTTP client to call the Gemini API.

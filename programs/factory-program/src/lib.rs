@@ -35,7 +35,11 @@ pub mod factory_program {
         let state = &mut ctx.accounts.launch_state;
         state.authority = ctx.accounts.authority.key();
         state.token_mint = ctx.accounts.token_mint.key();
-        state.sol_vault_bump = *ctx.bumps.get("sol_vault").unwrap();
+        // Anchor 0.31: Bumps are provided as an associated struct on the Accounts type
+        // Anchor 0.31 no longer provides Accounts::bumps(&ctx).
+        // Use the runtime bumps map exposed on Context.
+        let bumps = &ctx.bumps;
+        state.sol_vault_bump = bumps.sol_vault;
         state.initial_price = initial_price;
         state.slope = slope;
         state.tokens_sold = 0;
@@ -86,10 +90,16 @@ pub mod factory_program {
         )?;
         
         // Prepare seeds for signing as the `launch_state` PDA.
-        let authority_key = state.authority.key();
-        let token_mint_key = state.token_mint.key();
-        let launch_state_bump = *ctx.bumps.get("launch_state").unwrap();
-        let seeds = &[LAUNCH_STATE_SEED.as_ref(), authority_key.as_ref(), token_mint_key.as_ref(), &[launch_state_bump]];
+        // Avoid immutably borrowing ctx.accounts.launch_state while `state` is a mutable borrow.
+        let authority_key = state.authority;
+        let token_mint_key = state.token_mint;
+        let launch_state_bump = ctx.bumps.launch_state;
+        let seeds = &[
+            LAUNCH_STATE_SEED.as_ref(),
+            authority_key.as_ref(),
+            token_mint_key.as_ref(),
+            &[launch_state_bump],
+        ];
         let signer_seeds = &[&seeds[..]];
 
         // Mint tokens to the buyer.
@@ -99,7 +109,8 @@ pub mod factory_program {
                 token::MintTo {
                     mint: ctx.accounts.token_mint.to_account_info(),
                     to: ctx.accounts.buyer_token_account.to_account_info(),
-                    authority: ctx.accounts.launch_state.to_account_info(),
+                    // Use the same PDA account info without reborrowing via ctx.
+                    authority: state.to_account_info(),
                 },
                 signer_seeds,
             ),
@@ -109,10 +120,10 @@ pub mod factory_program {
         // If an affiliate key was provided, process the commission via CPI.
         if let Some(key) = affiliate_key {
             require_keys_eq!(key, ctx.accounts.affiliate.key(), FactoryError::AffiliateMismatch);
-            
+
             let cpi_program = ctx.accounts.affiliate_program.to_account_info();
             let cpi_accounts = ProcessCommission {
-                launch_state: ctx.accounts.launch_state.to_account_info(),
+                launch_state: state.to_account_info(),
                 affiliate_info: ctx.accounts.affiliate_info.to_account_info(),
                 affiliate_token_account: ctx.accounts.affiliate_token_account.to_account_info(),
                 token_mint: ctx.accounts.token_mint.to_account_info(),
@@ -233,7 +244,8 @@ pub struct BuyTokens<'info> {
         bump,
         seeds::program = affiliate_program.key()
     )]
-    pub affiliate_info: Account<'info, affiliate_program::AffiliateInfo>,
+    // Use the AffiliateInfo account type from the affiliate program crate
+    pub affiliate_info: Account<'info, affiliate_program::state::AffiliateInfo>,
 
     #[account(
         init_if_needed,

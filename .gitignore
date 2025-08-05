@@ -17,3 +17,5 @@ test-ledger/
 
 # Environment
 .env
+
+.cargo

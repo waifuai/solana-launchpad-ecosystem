@@ -20,5 +20,7 @@ default = []
 anchor-lang = { workspace = true }
 # Anchor's helpers for interacting with SPL programs like the Token Program.
 anchor-spl = { workspace = true }
+# Solana 2.x SDK (pulled via workspace)
+solana-program = { workspace = true }
 # Shared constants (PDA seeds) for the ecosystem.
 genesis-common = { path = "../../crates/genesis-common" }

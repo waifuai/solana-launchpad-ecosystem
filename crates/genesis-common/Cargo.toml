@@ -6,3 +6,5 @@ edition = "2021"
 [dependencies]
 # The core Anchor framework for Solana program development.
 anchor-lang = { workspace = true }
+# Solana 2.x program crate for types
+solana-program = { workspace = true }

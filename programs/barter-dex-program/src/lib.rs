@@ -21,8 +21,11 @@ pub mod barter_dex_program {
         pool.oracle_authority = oracle_authority;
         pool.oracle_price = ORACLE_PRICE_PRECISION; // Default to 1:1 price
         pool.last_oracle_update = Clock::get()?.unix_timestamp;
-        pool.vault_a_bump = *ctx.bumps.get("vault_a").unwrap();
-        pool.vault_b_bump = *ctx.bumps.get("vault_b").unwrap();
+        // Anchor 0.31: retrieve bumps from generated struct rather than ctx.bumps.get(...)
+        // Anchor 0.31: use ctx.bumps map instead of Accounts::bumps()
+        let bumps = &ctx.bumps;
+        pool.vault_a_bump = bumps.vault_a;
+        pool.vault_b_bump = bumps.vault_b;
         Ok(())
     }
 
@@ -86,7 +89,9 @@ pub mod barter_dex_program {
             amount_in
         )?;
 
-        let seeds = &[LIQUIDITY_POOL_SEED.as_ref(), pool.mint_a.as_ref(), pool.mint_b.as_ref(), &[*ctx.bumps.get("pool").unwrap()]];
+        // Anchor 0.31: use ctx.bumps map instead of Accounts::bumps()
+        let bumps = &ctx.bumps;
+        let seeds = &[LIQUIDITY_POOL_SEED.as_ref(), pool.mint_a.as_ref(), pool.mint_b.as_ref(), &[bumps.pool]];
         token::transfer(
              CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
