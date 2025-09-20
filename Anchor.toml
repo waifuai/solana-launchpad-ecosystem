@@ -7,9 +7,23 @@ factory_program = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
 affiliate_program = "AFFLiateiGR4sC1VbN9s3M1hA9gRPEc2iEM5y1N2u1j6a"
 barter_dex_program = "DEXy2D1fVf5s3f2y6D4b7j8N1M5P9kH3rW7T4gS6fX8a"
 
+[programs.devnet]
+factory_program = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+affiliate_program = "AFFLiateiGR4sC1VbN9s3M1hA9gRPEc2iEM5y1N2u1j6a"
+barter_dex_program = "DEXy2D1fVf5s3f2y6D4b7j8N1M5P9kH3rW7T4gS6fX8a"
+
+[programs.mainnet]
+factory_program = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+affiliate_program = "AFFLiateiGR4sC1VbN9s3M1hA9gRPEc2iEM5y1N2u1j6a"
+barter_dex_program = "DEXy2D1fVf5s3f2y6D4b7j8N1M5P9kH3rW7T4gS6fX8a"
+
 [provider]
 cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "cargo test-bpf -- --nocapture"
+build-all = "anchor build"
+deploy-devnet = "anchor deploy --provider.cluster devnet"
+deploy-mainnet = "anchor deploy --provider.cluster mainnet"
+test-integration = "cargo test --package tests -- --nocapture"

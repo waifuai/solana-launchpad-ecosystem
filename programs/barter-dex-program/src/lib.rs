@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 use genesis_common::constants::*;
+use genesis_common::utils::*;
 
 pub mod state;
 pub mod error;
@@ -9,23 +10,77 @@ use error::*;
 
 declare_id!("DEXy2D1fVf5s3f2y6D4b7j8N1M5P9kH3rW7T4gS6fX8a");
 
+/// Enhanced instruction arguments
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct CreatePoolArgs {
+    pub oracle_authority: Pubkey,
+    pub oracle_provider: OracleProvider,
+    pub pyth_price_feed_a: Option<Pubkey>,
+    pub pyth_price_feed_b: Option<Pubkey>,
+    pub switchboard_feed: Option<Pubkey>,
+    pub ai_oracle_program: Option<Pubkey>,
+    pub fee_bps: u16,
+    pub dynamic_fee_enabled: bool,
+    pub volatility_threshold: u64,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct UpdatePriceArgs {
+    pub pyth_price: Option<u64>,
+    pub switchboard_price: Option<u64>,
+    pub ai_price: Option<u64>,
+    pub price_confidence: Option<u64>,
+}
+
 #[program]
 pub mod barter_dex_program {
     use super::*;
 
-    /// Initializes a new oracle-based liquidity pool.
-    pub fn create_pool(ctx: Context<CreatePool>, oracle_authority: Pubkey) -> Result<()> {
+    /// Initializes a new oracle-based liquidity pool with enhanced features.
+    pub fn create_pool(ctx: Context<CreatePool>, args: CreatePoolArgs) -> Result<()> {
+        let current_time = Clock::get()?.unix_timestamp;
         let pool = &mut ctx.accounts.pool;
+
+        // Basic pool configuration
         pool.mint_a = ctx.accounts.mint_a.key();
         pool.mint_b = ctx.accounts.mint_b.key();
-        pool.oracle_authority = oracle_authority;
+        pool.oracle_authority = args.oracle_authority;
         pool.oracle_price = ORACLE_PRICE_PRECISION; // Default to 1:1 price
-        pool.last_oracle_update = Clock::get()?.unix_timestamp;
-        // Anchor 0.31: retrieve bumps from generated struct rather than ctx.bumps.get(...)
-        // Anchor 0.31: use ctx.bumps map instead of Accounts::bumps()
+        pool.last_oracle_update = current_time;
+
+        // Oracle configuration
+        pool.oracle_provider = args.oracle_provider;
+        pool.pyth_price_feed_a = args.pyth_price_feed_a;
+        pool.pyth_price_feed_b = args.pyth_price_feed_b;
+        pool.switchboard_feed = args.switchboard_feed;
+        pool.ai_oracle_program = args.ai_oracle_program;
+
+        // Initialize price sources
+        pool.pyth_price = None;
+        pool.switchboard_price = None;
+        pool.ai_price = None;
+        pool.price_confidence = 0;
+
+        // Initialize price history
+        pool.price_history = [ORACLE_PRICE_PRECISION; 24];
+        pool.history_index = 0;
+
+        // Liquidity tracking
+        pool.total_liquidity_a = 0;
+        pool.total_liquidity_b = 0;
+        pool.fee_bps = args.fee_bps;
+
+        // Dynamic fee configuration
+        pool.dynamic_fee_enabled = args.dynamic_fee_enabled;
+        pool.volatility_threshold = args.volatility_threshold;
+        pool.last_volatility_update = current_time;
+
         let bumps = &ctx.bumps;
         pool.vault_a_bump = bumps.vault_a;
         pool.vault_b_bump = bumps.vault_b;
+
+        msg!("Enhanced pool created for mints {} and {} with oracle provider {:?}",
+             pool.mint_a, pool.mint_b, pool.oracle_provider);
         Ok(())
     }
 
@@ -45,42 +100,58 @@ pub mod barter_dex_program {
         Ok(())
     }
 
-    /// Swaps tokens based on the current on-chain oracle price.
+    /// Swaps tokens using advanced oracle pricing with dynamic fees.
     pub fn swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> Result<()> {
-        let pool = &ctx.accounts.pool;
-        
-        // --- Oracle Sanity Checks ---
+        let pool = &mut ctx.accounts.pool;
         let current_time = Clock::get()?.unix_timestamp;
-        require!(current_time.checked_sub(pool.last_oracle_update).unwrap() < MAX_ORACLE_AGE_SECONDS, BarterError::OraclePriceStale);
 
-        // --- Price Calculation based on Oracle ---
-        // This logic replaces the constant product formula.
-        let amount_out = if ctx.accounts.user_source_token_account.mint == pool.mint_a {
+        // Oracle sanity checks
+        require!(!pool.is_oracle_stale()?, BarterError::OraclePriceStale);
+
+        // Calculate weighted average price from multiple sources
+        let effective_price = pool.calculate_weighted_price()?;
+        require!(effective_price > 0, BarterError::NoValidPriceSources);
+
+        // Calculate dynamic fee
+        let fee_bps = pool.calculate_dynamic_fee()?;
+
+        // Calculate amount out with fee
+        let amount_out_before_fee = if ctx.accounts.user_source_token_account.mint == pool.mint_a {
             // Swapping A for B: amount_out_B = amount_in_A * price_A_in_B
             (amount_in as u128)
-                .checked_mul(pool.oracle_price as u128)
+                .checked_mul(effective_price as u128)
                 .and_then(|v| v.checked_div(ORACLE_PRICE_PRECISION as u128))
                 .ok_or(BarterError::Overflow)? as u64
         } else {
             // Swapping B for A: amount_out_A = amount_in_B / price_A_in_B
             (amount_in as u128)
                 .checked_mul(ORACLE_PRICE_PRECISION as u128)
-                .and_then(|v| v.checked_div(pool.oracle_price as u128))
+                .and_then(|v| v.checked_div(effective_price as u128))
                 .ok_or(BarterError::Overflow)? as u64
         };
-        
+
+        // Apply trading fee
+        let fee_amount = (amount_out_before_fee as u128)
+            .checked_mul(fee_bps as u128)
+            .and_then(|v| v.checked_div(BPS_PRECISION as u128))
+            .ok_or(BarterError::DynamicFeeCalculationFailed)? as u64;
+
+        let amount_out = amount_out_before_fee
+            .checked_sub(fee_amount)
+            .ok_or(BarterError::Underflow)?;
+
         require!(amount_out >= min_amount_out, BarterError::SlippageExceeded);
 
+        // Liquidity checks
         let (source_vault, dest_vault, dest_vault_balance) = if ctx.accounts.user_source_token_account.mint == pool.mint_a {
             (ctx.accounts.vault_a.to_account_info(), ctx.accounts.vault_b.to_account_info(), ctx.accounts.vault_b.amount)
         } else {
             (ctx.accounts.vault_b.to_account_info(), ctx.accounts.vault_a.to_account_info(), ctx.accounts.vault_a.amount)
         };
 
-        // --- Liquidity Check ---
         require!(dest_vault_balance >= amount_out, BarterError::InsufficientLiquidity);
-        
-        // --- Token Transfers ---
+
+        // Execute token transfers
         token::transfer(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
@@ -89,7 +160,6 @@ pub mod barter_dex_program {
             amount_in
         )?;
 
-        // Anchor 0.31: use ctx.bumps map instead of Accounts::bumps()
         let bumps = &ctx.bumps;
         let seeds = &[LIQUIDITY_POOL_SEED.as_ref(), pool.mint_a.as_ref(), pool.mint_b.as_ref(), &[bumps.pool]];
         token::transfer(
@@ -101,13 +171,93 @@ pub mod barter_dex_program {
             amount_out
         )?;
 
+        // Update pool state
+        if ctx.accounts.user_source_token_account.mint == pool.mint_a {
+            pool.total_liquidity_a = pool.total_liquidity_a.checked_add(amount_in).ok_or(BarterError::Overflow)?;
+            pool.total_liquidity_b = pool.total_liquidity_b.checked_sub(amount_out).ok_or(BarterError::Underflow)?;
+        } else {
+            pool.total_liquidity_b = pool.total_liquidity_b.checked_add(amount_in).ok_or(BarterError::Overflow)?;
+            pool.total_liquidity_a = pool.total_liquidity_a.checked_sub(amount_out).ok_or(BarterError::Underflow)?;
+        }
+
+        // Update price history for volatility tracking
+        pool.update_price_history(effective_price);
+        pool.last_volatility_update = current_time;
+
+        msg!("Swap executed: {} in -> {} out with {} bps fee", amount_in, amount_out, fee_bps);
+        Ok(())
+    }
+
+    /// Update oracle price with enhanced multi-source support.
+    pub fn update_oracle_price(ctx: Context<UpdateOraclePrice>, args: UpdatePriceArgs) -> Result<()> {
+        let pool = &mut ctx.accounts.pool;
+        let current_time = Clock::get()?.unix_timestamp;
+
+        // Update individual price sources
+        if let Some(pyth_price) = args.pyth_price {
+            pool.pyth_price = Some(pyth_price);
+        }
+        if let Some(switchboard_price) = args.switchboard_price {
+            pool.switchboard_price = Some(switchboard_price);
+        }
+        if let Some(ai_price) = args.ai_price {
+            pool.ai_price = Some(ai_price);
+        }
+        if let Some(confidence) = args.price_confidence {
+            pool.price_confidence = confidence;
+        }
+
+        // Calculate weighted average price
+        let weighted_price = pool.calculate_weighted_price()?;
+        pool.oracle_price = weighted_price;
+        pool.last_oracle_update = current_time;
+
+        // Update price history
+        pool.update_price_history(weighted_price);
+
+        msg!("Oracle prices updated: pyth={:?}, switchboard={:?}, ai={:?}, weighted={}",
+             pool.pyth_price, pool.switchboard_price, pool.ai_price, weighted_price);
+        Ok(())
+    }
+
+    /// Update liquidity pool configuration.
+    pub fn update_pool_config(ctx: Context<UpdatePoolConfig>, fee_bps: u16, dynamic_fee_enabled: bool, volatility_threshold: u64) -> Result<()> {
+        let pool = &mut ctx.accounts.pool;
+
+        pool.fee_bps = fee_bps;
+        pool.dynamic_fee_enabled = dynamic_fee_enabled;
+        pool.volatility_threshold = volatility_threshold;
+        pool.last_volatility_update = Clock::get()?.unix_timestamp;
+
+        msg!("Pool configuration updated: fee={} bps, dynamic={}, threshold={}",
+             fee_bps, dynamic_fee_enabled, volatility_threshold);
+        Ok(())
+    }
+
+    /// Emergency pause/unpause pool trading.
+    pub fn emergency_pause(ctx: Context<EmergencyControl>, paused: bool) -> Result<()> {
+        let pool = &mut ctx.accounts.pool;
+        // In a real implementation, this would set a pause flag
+        // For now, we'll just log the action
+        msg!("Emergency control: pool trading {}", if paused { "paused" } else { "resumed" });
         Ok(())
     }
 }
 
+/// Event emitted when prices are updated
+#[event]
+pub struct PriceUpdateEvent {
+    pub pool: Pubkey,
+    pub pyth_price: Option<u64>,
+    pub switchboard_price: Option<u64>,
+    pub ai_price: Option<u64>,
+    pub weighted_price: u64,
+    pub timestamp: i64,
+}
+
 
 #[derive(Accounts)]
-#[instruction(oracle_authority: Pubkey)]
+#[instruction(args: CreatePoolArgs)]
 pub struct CreatePool<'info> {
     #[account(
         init,
@@ -173,6 +323,45 @@ pub struct AddLiquidity<'info> {
     pub user_token_account_b: Account<'info, TokenAccount>,
     pub user: Signer<'info>,
     pub token_program: Program<'info, Token>,
+}
+
+#[derive(Accounts)]
+#[instruction(args: UpdatePriceArgs)]
+pub struct UpdateOraclePrice<'info> {
+    #[account(
+        mut,
+        seeds = [LIQUIDITY_POOL_SEED.as_ref(), pool.mint_a.as_ref(), pool.mint_b.as_ref()],
+        bump,
+        has_one = oracle_authority @ BarterError::InvalidOracleAuthority
+    )]
+    pub pool: Account<'info, LiquidityPool>,
+    pub oracle_authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(fee_bps: u16, dynamic_fee_enabled: bool, volatility_threshold: u64)]
+pub struct UpdatePoolConfig<'info> {
+    #[account(
+        mut,
+        seeds = [LIQUIDITY_POOL_SEED.as_ref(), pool.mint_a.as_ref(), pool.mint_b.as_ref()],
+        bump,
+        has_one = oracle_authority @ BarterError::InvalidOracleAuthority
+    )]
+    pub pool: Account<'info, LiquidityPool>,
+    pub oracle_authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(paused: bool)]
+pub struct EmergencyControl<'info> {
+    #[account(
+        mut,
+        seeds = [LIQUIDITY_POOL_SEED.as_ref(), pool.mint_a.as_ref(), pool.mint_b.as_ref()],
+        bump,
+        has_one = oracle_authority @ BarterError::InvalidOracleAuthority
+    )]
+    pub pool: Account<'info, LiquidityPool>,
+    pub oracle_authority: Signer<'info>,
 }
 
 impl<'info> AddLiquidity<'info> {

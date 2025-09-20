@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, MintTo, TokenAccount};
 use genesis_common::constants::*;
+use genesis_common::utils::*;
 
 pub mod state;
 pub mod error;
@@ -10,17 +11,84 @@ use error::*;
 
 declare_id!("Aff1aTe111111111111111111111111111111111111"); // 32-byte base58 placeholder for local tests
 
+/// Enhanced instruction arguments
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct RegisterAffiliateArgs {
+    pub parent_affiliate: Option<Pubkey>,
+    pub referral_level: u8,
+    pub rate_caps_enabled: bool,
+    pub max_commission_rate_bps: u16,
+    pub min_commission_rate_bps: u16,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct UpdateCommissionRateArgs {
+    pub new_rate_bps: u16,
+    pub ai_suggested: bool,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct UpdateAnalyticsArgs {
+    pub volume: u64,
+    pub clicks: u32,
+}
+
 #[program]
 pub mod affiliate_program {
     use super::*;
 
-    /// Creates an `AffiliateInfo` account for the signer, registering them as an affiliate.
-    pub fn register_affiliate(ctx: Context<RegisterAffiliate>) -> Result<()> {
+    /// Creates an `AffiliateInfo` account for the signer, registering them as an affiliate with enhanced features.
+    pub fn register_affiliate(ctx: Context<RegisterAffiliate>, args: RegisterAffiliateArgs) -> Result<()> {
+        let current_time = Clock::get()?.unix_timestamp;
         let info = &mut ctx.accounts.affiliate_info;
+
+        // Validate referral level
+        require!(args.referral_level > 0 && args.referral_level <= 5, AffiliateError::InvalidReferralLevel);
+
+        // Validate parent affiliate if provided
+        if let Some(parent) = args.parent_affiliate {
+            require!(parent != ctx.accounts.affiliate.key(), AffiliateError::CircularReferral);
+            // Additional validation would check if parent exists
+        }
+
+        // Initialize basic fields
         info.affiliate_key = ctx.accounts.affiliate.key();
         info.total_referred_volume = 0;
-        info.commission_rate_bps = 1000; // Default to 10% commission.
-        msg!("Affiliate {} registered with a default 10% rate", info.affiliate_key);
+        info.commission_rate_bps = 1000; // Default to 10% commission
+
+        // Initialize performance analytics
+        info.performance_tier = PerformanceTier::Bronze;
+        info.monthly_referred_volume = 0;
+        info.quarterly_referred_volume = 0;
+        info.yearly_referred_volume = 0;
+        info.successful_referrals = 0;
+        info.total_clicks = 0;
+        info.conversion_rate_bps = 0;
+        info.performance_score = 0;
+
+        // Initialize AI optimization settings
+        info.rate_caps_enabled = args.rate_caps_enabled;
+        info.max_commission_rate_bps = if args.rate_caps_enabled { args.max_commission_rate_bps } else { MAX_RATE_BPS };
+        info.min_commission_rate_bps = if args.rate_caps_enabled { args.min_commission_rate_bps } else { MIN_RATE_BPS };
+        info.ai_optimization_enabled = true;
+
+        // Initialize multi-level referral tracking
+        info.referral_level = args.referral_level;
+        info.parent_affiliate = args.parent_affiliate;
+        info.total_descendants = 0;
+        info.active_descendants = 0;
+
+        // Initialize time tracking
+        info.registration_time = current_time;
+        info.last_activity_time = current_time;
+        info.last_rate_update_time = current_time;
+        info.tier_upgrade_time = current_time;
+
+        // Initialize monthly volume history
+        info.monthly_volume_history = [0; 12];
+
+        msg!("Enhanced affiliate {} registered with tier: {:?}, level: {}",
+             info.affiliate_key, info.performance_tier, info.referral_level);
         Ok(())
     }
 
@@ -71,8 +139,108 @@ pub mod affiliate_program {
             .ok_or(AffiliateError::Overflow)?;
 
         msg!("Processed commission of {} tokens for affiliate {}", commission_amount, affiliate_info.affiliate_key);
+
+        // Update analytics
+        affiliate_info.monthly_referred_volume = affiliate_info.monthly_referred_volume
+            .checked_add(purchased_tokens)
+            .ok_or(AffiliateError::Overflow)?;
+        affiliate_info.successful_referrals = affiliate_info.successful_referrals
+            .checked_add(1)
+            .ok_or(AffiliateError::Overflow)?;
+        affiliate_info.last_activity_time = Clock::get()?.unix_timestamp;
+
+        // Recalculate performance metrics
+        affiliate_info.calculate_performance_tier()?;
+        affiliate_info.update_performance_score()?;
+
         Ok(())
     }
+
+    /// AI-optimized commission rate update with validation
+    pub fn update_commission_rate_ai(ctx: Context<UpdateCommissionRate>, args: UpdateCommissionRateArgs) -> Result<()> {
+        let info = &mut ctx.accounts.affiliate_info;
+        let current_time = Clock::get()?.unix_timestamp;
+
+        // Validate rate is within allowed range
+        require!(args.new_rate_bps >= MIN_RATE_BPS && args.new_rate_bps <= MAX_RATE_BPS, AffiliateError::InvalidRate);
+
+        // Check rate caps if enabled
+        if info.rate_caps_enabled {
+            require!(args.new_rate_bps >= info.min_commission_rate_bps, AffiliateError::RateBelowMinCap);
+            require!(args.new_rate_bps <= info.max_commission_rate_bps, AffiliateError::RateExceedsMaxCap);
+        }
+
+        // Check if update is allowed
+        require!(info.can_update_rate(args.new_rate_bps, current_time)?, AffiliateError::RateUpdateNotAllowed);
+
+        info.commission_rate_bps = args.new_rate_bps;
+        info.last_rate_update_time = current_time;
+
+        msg!("AI-optimized commission rate for {} updated to {} bps (AI suggested: {})",
+             info.affiliate_key, args.new_rate_bps, args.ai_suggested);
+        Ok(())
+    }
+
+    /// Update affiliate analytics data
+    pub fn update_analytics(ctx: Context<UpdateAnalytics>, args: UpdateAnalyticsArgs) -> Result<()> {
+        let analytics = &mut ctx.accounts.analytics;
+        let current_time = Clock::get()?.unix_timestamp;
+
+        // Update daily stats
+        analytics.add_daily_stats(args.volume, args.clicks);
+        analytics.last_update = current_time;
+
+        // Update affiliate info with aggregated data
+        let affiliate_info = &mut ctx.accounts.affiliate_info;
+        affiliate_info.total_referred_volume = affiliate_info.total_referred_volume
+            .checked_add(args.volume)
+            .ok_or(AffiliateError::Overflow)?;
+        affiliate_info.total_clicks = affiliate_info.total_clicks
+            .checked_add(args.clicks)
+            .ok_or(AffiliateError::Overflow)?;
+
+        // Recalculate conversion rate
+        if affiliate_info.total_clicks > 0 {
+            affiliate_info.conversion_rate_bps = ((affiliate_info.successful_referrals as u64 * BPS_PRECISION) / affiliate_info.total_clicks as u64) as u16;
+        }
+
+        // Update performance metrics
+        affiliate_info.calculate_performance_tier()?;
+        affiliate_info.update_performance_score()?;
+
+        msg!("Analytics updated for affiliate {}", affiliate_info.affiliate_key);
+        Ok(())
+    }
+
+    /// Get AI-suggested commission rate based on performance
+    pub fn get_ai_suggested_rate(ctx: Context<GetAISuggestedRate>) -> Result<()> {
+        let info = &ctx.accounts.affiliate_info;
+        let suggested_rate = info.get_suggested_rate();
+
+        msg!("AI suggested rate for affiliate {}: {} bps (current: {} bps)",
+             info.affiliate_key, suggested_rate, info.commission_rate_bps);
+
+        // Emit event for off-chain processing
+        emit!(AISuggestedRateEvent {
+            affiliate_key: info.affiliate_key,
+            current_rate_bps: info.commission_rate_bps,
+            suggested_rate_bps: suggested_rate,
+            performance_tier: info.performance_tier,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
+
+        Ok(())
+    }
+}
+
+/// Event emitted when AI suggests a new commission rate
+#[event]
+pub struct AISuggestedRateEvent {
+    pub affiliate_key: Pubkey,
+    pub current_rate_bps: u16,
+    pub suggested_rate_bps: u16,
+    pub performance_tier: PerformanceTier,
+    pub timestamp: i64,
 }
 
 #[derive(Accounts)]
@@ -126,4 +294,55 @@ pub struct ProcessCommission<'info> {
     pub token_mint: AccountInfo<'info>,
     
     pub token_program: Program<'info, Token>,
+}
+
+#[derive(Accounts)]
+#[instruction(args: UpdateCommissionRateArgs)]
+pub struct UpdateCommissionRate<'info> {
+    #[account(
+        mut,
+        seeds = [AFFILIATE_INFO_SEED.as_ref(), affiliate.key().as_ref()],
+        bump,
+        has_one = affiliate_key @ AffiliateError::AuthorityMismatch
+    )]
+    pub affiliate_info: Account<'info, AffiliateInfo>,
+
+    #[account(mut)]
+    pub affiliate: Signer<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(args: UpdateAnalyticsArgs)]
+pub struct UpdateAnalytics<'info> {
+    #[account(
+        mut,
+        seeds = [AFFILIATE_INFO_SEED.as_ref(), affiliate.key().as_ref()],
+        bump
+    )]
+    pub affiliate_info: Account<'info, AffiliateInfo>,
+
+    #[account(
+        init_if_needed,
+        payer = affiliate,
+        space = AffiliateAnalytics::LEN + 8,
+        seeds = [AFFILIATE_ANALYTICS_SEED.as_ref(), affiliate.key().as_ref()],
+        bump
+    )]
+    pub analytics: Account<'info, AffiliateAnalytics>,
+
+    #[account(mut)]
+    pub affiliate: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct GetAISuggestedRate<'info> {
+    #[account(
+        seeds = [AFFILIATE_INFO_SEED.as_ref(), affiliate.key().as_ref()],
+        bump
+    )]
+    pub affiliate_info: Account<'info, AffiliateInfo>,
+
+    pub affiliate: Signer<'info>,
 }

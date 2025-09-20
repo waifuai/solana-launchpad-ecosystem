@@ -47,7 +47,7 @@ fn read_first_line(path: &std::path::Path) -> Option<String> {
 
 fn resolve_openrouter_model() -> String {
     let p = dirs::home_dir().unwrap_or_default().join(".model-openrouter");
-    read_first_line(&p).unwrap_or_else(|| "openrouter/horizon-beta".to_string())
+    read_first_line(&p).unwrap_or_else(|| "deepseek/deepseek-chat-v3-0324:free".to_string())
 }
 
 fn resolve_gemini_model() -> String {

@@ -1,11 +1,18 @@
 use anchor_client::{Client, Program, Cluster};
-use affiliate_program::accounts::SetCommissionRate;
-use affiliate_program::instruction::SetCommissionRate as SetCommissionRateInstruction;
+use affiliate_program::accounts::{SetCommissionRate, RegisterAffiliate, UpdateAnalytics};
+use affiliate_program::instruction::{SetCommissionRate as SetCommissionRateInstruction, RegisterAffiliate as RegisterAffiliateInstruction, UpdateAnalytics as UpdateAnalyticsInstruction};
 use serde::{Deserialize, Serialize};
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signer::{keypair::Keypair, Signer};
+use solana_sdk::commitment_config::CommitmentConfig;
+use solana_sdk::transaction::Transaction;
 use std::fs;
 use std::rc::Rc;
+use std::time::Duration;
+use tokio::time::sleep;
+use chrono::{Utc, Duration as ChronoDuration};
+use std::collections::HashMap;
+use log::{info, warn, error};
 
 #[derive(Serialize)]
 struct GoogleGenRequest {
@@ -47,9 +54,68 @@ fn read_first_line(path: &std::path::Path) -> Option<String> {
     std::fs::read_to_string(path).ok().map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
 }
 
+#[derive(Debug, Clone)]
+struct AffiliateData {
+    pubkey: Pubkey,
+    current_rate: u16,
+    total_volume: u64,
+    performance_tier: u8,
+    conversion_rate: u16,
+    last_update: i64,
+}
+
+#[derive(Debug)]
+struct BotConfig {
+    batch_size: usize,
+    retry_attempts: u32,
+    retry_delay_ms: u64,
+    update_interval_seconds: u64,
+    max_rate_change_bps: u16,
+    min_update_interval_seconds: u64,
+}
+
+impl Default for BotConfig {
+    fn default() -> Self {
+        Self {
+            batch_size: 10,
+            retry_attempts: 3,
+            retry_delay_ms: 1000,
+            update_interval_seconds: 3600, // 1 hour
+            max_rate_change_bps: 500, // Max 5% change per update
+            min_update_interval_seconds: 86400, // 24 hours minimum between updates
+        }
+    }
+}
+
+async fn retry_with_backoff<T, F, Fut>(
+    operation: F,
+    max_attempts: u32,
+    base_delay_ms: u64,
+) -> Result<T, Box<dyn std::error::Error>>
+where
+    F: Fn() -> Fut,
+    Fut: std::future::Future<Output = Result<T, Box<dyn std::error::Error>>>,
+{
+    let mut attempt = 0;
+    loop {
+        attempt += 1;
+        match operation().await {
+            Ok(result) => return Ok(result),
+            Err(e) => {
+                if attempt >= max_attempts {
+                    return Err(e);
+                }
+                let delay = base_delay_ms * (2_u64.pow(attempt - 1));
+                warn!("Attempt {} failed: {}. Retrying in {}ms...", attempt, e, delay);
+                sleep(Duration::from_millis(delay)).await;
+            }
+        }
+    }
+}
+
 fn resolve_openrouter_model() -> String {
     let p = dirs::home_dir().unwrap_or_default().join(".model-openrouter");
-    read_first_line(&p).unwrap_or_else(|| "openrouter/horizon-beta".to_string())
+    read_first_line(&p).unwrap_or_else(|| "deepseek/deepseek-chat-v3-0324:free".to_string())
 }
 
 fn resolve_gemini_model() -> String {
