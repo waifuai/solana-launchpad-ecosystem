@@ -1,3 +1,40 @@
+//! # Integration Tests for Solana Launchpad Ecosystem
+//!
+//! This module contains comprehensive integration tests that verify the end-to-end
+//! functionality of the AI-Hybrid Solana Launchpad Ecosystem. These tests run
+//! against the actual deployed programs using the Solana Program Test framework.
+//!
+//! ## Test Coverage
+//!
+//! The integration tests cover the complete user journey:
+//! 1. **Program Setup**: Initialize factory and affiliate programs in test environment
+//! 2. **ICO Launch Creation**: Create token launches with bonding curve pricing
+//! 3. **Affiliate Registration**: Register affiliates with commission structures
+//! 4. **Token Purchase Flow**: Complete purchase with affiliate referral commissions
+//! 5. **Balance Verification**: Validate token distributions and SOL transfers
+//!
+//! ## Key Test Scenarios
+//!
+//! - **Full Flow Test**: Complete workflow from launch creation to affiliate commission
+//! - **Multi-Program Integration**: Tests interaction between factory and affiliate programs
+//! - **Economic Validation**: Verifies correct token amounts, commissions, and pricing
+//! - **PDA Address Calculation**: Ensures consistent Program Derived Address generation
+//!
+//! ## Test Environment
+//!
+//! Tests run in the Solana Program Test environment with:
+//! - In-memory blockchain simulation
+//! - Program deployment and registration
+//! - Account creation and funding
+//! - Transaction processing and validation
+//!
+//! ## Usage
+//!
+//! Run integration tests with:
+//! ```bash
+//! cargo test-bpf -- --nocapture
+//! ```
+
 #![cfg(feature = "test-bpf")]
 
 use anchor_lang::{prelude::*, InstructionData, ToAccountMetas};

@@ -1,3 +1,50 @@
+//! # Factory Program - ICO Launchpad
+//!
+//! This program implements an advanced Initial Coin Offering (ICO) launchpad
+//! for the Solana Launchpad Ecosystem. It enables the creation and management
+//! of token launches with sophisticated pricing models, vesting schedules,
+//! and anti-bot protection mechanisms.
+//!
+//! ## Core Functionality
+//!
+//! The factory program serves as the central hub for token launches:
+//! - **Multi-Modal Pricing**: Support for linear, exponential, fixed, and Dutch auction pricing
+//! - **Advanced Vesting**: Configurable vesting schedules with cliffs and linear distribution
+//! - **Anti-Bot Protection**: Multi-level protection against automated trading bots
+//! - **Affiliate Integration**: Seamless integration with the affiliate program for referral commissions
+//! - **Platform Fees**: Configurable platform and affiliate fee structures
+//!
+//! ## Key Features
+//!
+//! - **Bonding Curve Pricing**: Dynamic price adjustment based on tokens sold
+//! - **Vesting Schedules**: Linear vesting with configurable cliffs and durations
+//! - **Anti-Bot Measures**: Purchase limits, cooldowns, and amount validation
+//! - **Cross-Program Integration**: Direct CPI calls to affiliate program for commission processing
+//! - **Launch Analytics**: Comprehensive tracking of sales, fees, and purchase metrics
+//!
+//! ## Core Instructions
+//!
+//! - [`create_launch`]: Initialize new token launches with full configuration
+//! - [`buy_tokens`]: Process token purchases with anti-bot validation and affiliate commissions
+//! - [`withdraw_sol`]: Authority-only withdrawal of collected SOL funds
+//! - [`claim_vested_tokens`]: Claim tokens from vesting schedules
+//! - [`update_launch`]: Modify launch parameters post-creation
+//!
+//! ## Security Features
+//!
+//! - Comprehensive overflow/underflow protection using genesis-common utilities
+//! - Time-based launch constraints with start/end validation
+//! - Authority-based access control for sensitive operations
+//! - Anti-bot protection with configurable severity levels
+//! - Fee calculation validation and recipient verification
+//!
+//! ## Integration Points
+//!
+//! This program integrates with:
+//! - **Affiliate Program**: For commission processing and referral tracking
+//! - **Genesis Common**: For shared utilities, constants, and safe math operations
+//! - **SPL Token Program**: For minting and token account management
+
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 use anchor_spl::associated_token::AssociatedToken;

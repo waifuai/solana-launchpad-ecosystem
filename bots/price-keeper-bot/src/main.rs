@@ -1,3 +1,41 @@
+//! # DEX Price Keeper Bot
+//!
+//! This bot serves as an AI-powered price oracle for the barter DEX program
+//! in the Solana Launchpad Ecosystem. It continuously monitors liquidity pools
+//! and updates on-chain prices using AI-generated exchange rates.
+//!
+//! ## Functionality
+//!
+//! The bot implements the following workflow:
+//! 1. Fetches all active liquidity pools from the barter DEX program
+//! 2. For each pool, constructs AI prompts with token mint addresses
+//! 3. Queries either OpenRouter or Gemini AI APIs for exchange rate calculations
+//! 4. Parses AI responses to extract precise price data (with 9 decimal precision)
+//! 5. Submits transactions to update oracle prices on-chain for each pool
+//!
+//! ## Oracle Role
+//!
+//! This bot acts as the authoritative price oracle for the barter DEX system:
+//! - Only the bot's designated oracle authority can update prices
+//! - Prices are used directly by the DEX for swap calculations
+//! - Stale prices are automatically rejected by the DEX program
+//!
+//! ## AI Integration
+//!
+//! The bot supports two AI providers for price calculation:
+//! - **OpenRouter**: Default provider using various models (default: deepseek-chat)
+//! - **Gemini**: Google's Gemini 2.5 Pro API for price analysis
+//!
+//! ## Configuration
+//!
+//! API keys can be configured via:
+//! - Environment variables (`OPENROUTER_API_KEY`, `GEMINI_API_KEY`)
+//! - Files in user home directory (`~/.api-openrouter`, `~/.api-gemini`)
+//!
+//! Model preferences can be set via:
+//! - `~/.model-openrouter` for OpenRouter model selection
+//! - `~/.model-gemini` for Gemini model selection
+
 use anchor_client::{Client, Program, Cluster};
 use barter_dex_program::accounts::UpdateOraclePrice;
 use barter_dex_program::instruction::UpdateOraclePrice as UpdateOraclePriceInstruction;

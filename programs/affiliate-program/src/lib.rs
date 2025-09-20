@@ -1,3 +1,40 @@
+//! # Affiliate Program
+//!
+//! This program manages an AI-optimized affiliate system for the Solana Launchpad Ecosystem.
+//! It enables dynamic commission rate management through intelligent analysis of affiliate
+//! performance metrics, creating a responsive and merit-based referral system.
+//!
+//! ## Core Functionality
+//!
+//! The affiliate program provides:
+//! - **Dynamic Commission Rates**: Rates adjust based on AI analysis of performance metrics
+//! - **Multi-level Referrals**: Support for hierarchical affiliate structures
+//! - **Performance Analytics**: Comprehensive tracking of referral volume, conversion rates, and tier progression
+//! - **AI Integration Points**: Multiple instructions designed for AI bot interaction
+//!
+//! ## Key Instructions
+//!
+//! - [`register_affiliate`]: Creates affiliate accounts with configurable parameters
+//! - [`set_commission_rate`]: Basic rate setting (legacy compatibility)
+//! - [`update_commission_rate_ai`]: AI-optimized rate updates with validation
+//! - [`process_commission`]: CPI-only commission processing for token launches
+//! - [`update_analytics`]: Performance data updates for AI analysis
+//! - [`get_ai_suggested_rate`]: Query current AI-suggested rates
+//!
+//! ## AI Integration
+//!
+//! This program is designed to work with the `optimizer-bot` which:
+//! 1. Analyzes affiliate performance data on-chain
+//! 2. Queries AI services for optimal commission rates
+//! 3. Updates rates through the `update_commission_rate_ai` instruction
+//!
+//! ## Security Features
+//!
+//! - Rate caps and minimum bounds to prevent abuse
+//! - Time-based restrictions on rate updates
+//! - Authority validation for all sensitive operations
+//! - Comprehensive error handling with custom error codes
+
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, MintTo, TokenAccount};
 use genesis_common::constants::*;

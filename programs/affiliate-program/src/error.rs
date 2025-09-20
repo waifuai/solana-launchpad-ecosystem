@@ -1,3 +1,24 @@
+//! # Affiliate Program Error Definitions
+//!
+//! This module defines all custom error codes used by the affiliate program.
+//! These errors provide detailed feedback for various failure conditions
+//! encountered during affiliate operations.
+//!
+//! ## Error Categories
+//!
+//! - **Rate Management**: Errors related to commission rate validation and updates
+//! - **Analytics**: Errors for performance tracking and tier management
+//! - **Referrals**: Errors for multi-level referral validation
+//! - **Time Constraints**: Errors for timestamp and timing validation
+//! - **Account Management**: Errors for account initialization and state
+//!
+//! ## Usage
+//!
+//! All errors are defined using Anchor's `#[error_code]` attribute and
+//! include descriptive messages that will be returned to users when
+//! transactions fail. Error codes are automatically generated and can
+//! be used for programmatic error handling.
+
 use anchor_lang::prelude::*;
 
 /// Defines the custom errors that the affiliate-program can return.

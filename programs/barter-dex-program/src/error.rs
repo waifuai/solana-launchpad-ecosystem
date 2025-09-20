@@ -1,3 +1,30 @@
+//! # Barter DEX Program Error Definitions
+//!
+//! This module defines all custom error codes used by the oracle-based DEX program.
+//! These errors provide detailed feedback for various failure conditions encountered
+//! during DEX operations, oracle interactions, and liquidity management.
+//!
+//! ## Error Categories
+//!
+//! - **Trading Errors**: Slippage, liquidity, and swap execution failures
+//! - **Oracle Errors**: Price feed validation, staleness, and authority issues
+//! - **Fee Calculation**: Dynamic fee computation and validation errors
+//! - **Pool Management**: Configuration and state management issues
+//!
+//! ## Oracle-Specific Errors
+//!
+//! Specialized errors for multi-oracle integration:
+//! - Price feed validation for Pyth, Switchboard, and AI oracles
+//! - Confidence interval validation for price reliability
+//! - Multi-source aggregation failures
+//!
+//! ## Usage
+//!
+//! All errors are defined using Anchor's `#[error_code]` attribute and
+//! include descriptive messages that will be returned to users when
+//! transactions fail. Error codes are automatically generated and can
+//! be used for programmatic error handling and monitoring.
+
 use anchor_lang::prelude::*;
 
 /// Defines the custom errors that the barter-dex-program can return.

@@ -1,3 +1,34 @@
+//! # Affiliate Commission Optimizer Bot
+//!
+//! This bot is part of the Solana Launchpad Ecosystem's AI-Hybrid architecture.
+//! It dynamically optimizes affiliate commission rates by analyzing on-chain performance
+//! data and using AI to suggest optimal commission rates.
+//!
+//! ## Functionality
+//!
+//! The bot performs the following workflow:
+//! 1. Fetches affiliate data from the on-chain affiliate program
+//! 2. Constructs AI prompts with performance metrics and current rates
+//! 3. Queries either OpenRouter or Gemini AI APIs for commission rate suggestions
+//! 4. Parses AI responses to extract new rate recommendations
+//! 5. Submits transactions to update commission rates on-chain when beneficial
+//!
+//! ## AI Integration
+//!
+//! The bot supports two AI providers:
+//! - **OpenRouter**: Default provider using various models (default: deepseek-chat)
+//! - **Gemini**: Google's Gemini 2.5 Pro API for commission analysis
+//!
+//! ## Configuration
+//!
+//! API keys can be configured via:
+//! - Environment variables (`OPENROUTER_API_KEY`, `GEMINI_API_KEY`)
+//! - Files in user home directory (`~/.api-openrouter`, `~/.api-gemini`)
+//!
+//! Model preferences can be set via:
+//! - `~/.model-openrouter` for OpenRouter model selection
+//! - `~/.model-gemini` for Gemini model selection
+
 use anchor_client::{Client, Program, Cluster};
 use affiliate_program::accounts::{SetCommissionRate, RegisterAffiliate, UpdateAnalytics};
 use affiliate_program::instruction::{SetCommissionRate as SetCommissionRateInstruction, RegisterAffiliate as RegisterAffiliateInstruction, UpdateAnalytics as UpdateAnalyticsInstruction};

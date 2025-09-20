@@ -1,3 +1,30 @@
+//! # Affiliate Program State Definitions
+//!
+//! This module defines the state structures used by the affiliate program,
+//! including affiliate information, performance tiers, and analytics tracking.
+//! These structures store all persistent data for the affiliate system.
+//!
+//! ## Key Structures
+//!
+//! - [`AffiliateInfo`]: Main state account for individual affiliates with comprehensive analytics
+//! - [`AffiliateAnalytics`]: Daily tracking data for performance analysis
+//! - [`PerformanceTier`]: Enumeration of affiliate performance levels
+//!
+//! ## Performance System
+//!
+//! The program implements a sophisticated performance tracking system:
+//! - **Tier-based progression**: Bronze → Silver → Gold → Platinum based on volume and conversion
+//! - **Performance scoring**: Multi-factor scoring system considering volume, conversions, and referrals
+//! - **Rate optimization**: AI-suggested commission rates based on performance metrics
+//!
+//! ## Analytics Features
+//!
+//! Comprehensive tracking includes:
+//! - Volume history (monthly, quarterly, yearly)
+//! - Conversion rate tracking
+//! - Multi-level referral relationships
+//! - Time-based activity monitoring
+
 use anchor_lang::prelude::*;
 use genesis_common::constants::*;
 

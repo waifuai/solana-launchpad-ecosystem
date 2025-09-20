@@ -1,3 +1,28 @@
+//! # Utility Functions Module
+//!
+//! This module provides essential utility functions used across all on-chain programs
+//! in the Solana Launchpad Ecosystem. It includes safe mathematical operations,
+//! PDA derivation utilities, and time-based validations.
+//!
+//! ## Modules
+//!
+//! - [`pda_utils`]: Program Derived Address (PDA) derivation functions for consistent addressing
+//! - [`math_utils`]: Safe arithmetic operations with comprehensive overflow/underflow protection
+//! - [`time_utils`]: Time-based validation utilities for oracle staleness and vesting calculations
+//!
+//! ## Safety Features
+//!
+//! All mathematical operations include:
+//! - Overflow protection using checked arithmetic
+//! - Underflow protection for subtraction operations
+//! - Division by zero prevention
+//! - Comprehensive error handling with custom error codes
+//!
+//! ## Usage
+//!
+//! These utilities are designed to be imported and used by all programs in the ecosystem
+//! to ensure consistency and safety in critical operations.
+
 use anchor_lang::prelude::*;
 use std::convert::TryInto;
 

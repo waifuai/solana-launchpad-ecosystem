@@ -1,3 +1,49 @@
+//! # Barter DEX Program
+//!
+//! This program implements an AI-powered oracle-based decentralized exchange (DEX)
+//! for the Solana Launchpad Ecosystem. Unlike traditional AMMs, it relies entirely
+//! on external price oracles for swap calculations, enabling dynamic pricing through
+//! AI-driven price feeds.
+//!
+//! ## Oracle-Based Architecture
+//!
+//! The DEX operates on a fundamentally different model from traditional AMMs:
+//! - **External Price Sources**: Prices come from trusted oracle authorities, not internal formulas
+//! - **AI Integration**: Primary oracle is the `price-keeper-bot` which uses AI to determine fair prices
+//! - **Multi-Source Support**: Can aggregate prices from Pyth, Switchboard, and AI oracles
+//! - **Dynamic Fees**: Trading fees adjust based on market volatility and price confidence
+//!
+//! ## Key Features
+//!
+//! - **AI-Powered Pricing**: Exchange rates determined by AI analysis of market conditions
+//! - **Multi-Oracle Support**: Weighted price calculation from multiple data sources
+//! - **Dynamic Fee System**: Fees adjust automatically based on volatility and confidence
+//! - **Staleness Protection**: Transactions fail if oracle prices are too old
+//! - **Emergency Controls**: Administrative functions for pausing and configuration updates
+//!
+//! ## Core Instructions
+//!
+//! - [`create_pool`]: Initialize new liquidity pools with oracle configuration
+//! - [`update_oracle_price`]: Permissioned price updates from oracle authorities
+//! - [`swap`]: Execute token swaps at oracle-determined prices
+//! - [`add_liquidity`]: Provide liquidity to trading pools
+//! - [`update_pool_config`]: Modify pool parameters and fee structures
+//!
+//! ## AI Integration
+//!
+//! This program is designed to work with the `price-keeper-bot` which:
+//! 1. Monitors pool configurations and token pairs
+//! 2. Queries AI services for fair exchange rates
+//! 3. Updates prices through the `update_oracle_price` instruction
+//! 4. Maintains price history for volatility calculations
+//!
+//! ## Security Features
+//!
+//! - Oracle authority validation for price updates
+//! - Timestamp-based staleness checks
+//! - Comprehensive overflow/underflow protection
+//! - Configurable minimum liquidity requirements
+
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 use genesis_common::constants::*;

@@ -1,3 +1,40 @@
+//! # Smoke Tests for Solana Launchpad Ecosystem
+//!
+//! This module contains lightweight smoke tests that verify basic functionality
+//! of the Solana Launchpad Ecosystem without requiring the Anchor CLI test-bpf
+//! feature. These tests run under standard `cargo test` and provide quick feedback
+//! on system health.
+//!
+//! ## Purpose
+//!
+//! Smoke tests serve as a first line of defense to catch major regressions:
+//! - **Fast Execution**: Run in seconds rather than minutes
+//! - **Core Functionality**: Test essential program interactions
+//! - **CI/CD Ready**: Can run without special test environments
+//! - **Regression Detection**: Catch breaking changes early
+//!
+//! ## Test Coverage
+//!
+//! The smoke test mirrors the integration test flow but with minimal setup:
+//! - Program registration and initialization
+//! - Basic instruction execution
+//! - Token account balance verification
+//! - SOL transfer validation
+//!
+//! ## Key Differences from Integration Tests
+//!
+//! - **No test-bpf**: Uses standard Solana Program Test framework
+//! - **Simplified Setup**: Minimal account creation and funding
+//! - **Basic Assertions**: Focus on core functionality rather than edge cases
+//! - **Faster Execution**: Optimized for quick feedback loops
+//!
+//! ## Usage
+//!
+//! Run smoke tests with:
+//! ```bash
+//! cargo test smoke
+//! ```
+
 #![cfg(test)]
 
 use anchor_lang::{InstructionData, ToAccountMetas, prelude::*};

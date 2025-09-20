@@ -1,3 +1,38 @@
+//! # System Constants Module
+//!
+//! This module defines all system-wide constants used across the Solana Launchpad Ecosystem.
+//! It includes PDA seeds, mathematical constants, security limits, and performance parameters
+//! that ensure consistency across all on-chain programs.
+//!
+//! ## PDA Seeds
+//!
+//! All Program Derived Address (PDA) seeds are defined as constants to ensure
+//! consistent addressing across the ecosystem:
+//! - Launch state accounts for ICO management
+//! - SOL vault accounts for fund custody
+//! - Affiliate info accounts for referral tracking
+//! - Liquidity pool accounts for DEX operations
+//!
+//! ## Mathematical Constants
+//!
+//! Precision constants for price calculations and basis point arithmetic:
+//! - `ORACLE_PRICE_PRECISION`: 1e9 for high-precision price calculations
+//! - `BPS_PRECISION`: 10,000 for percentage calculations using basis points
+//!
+//! ## Security Constants
+//!
+//! Rate limits and time constraints to prevent abuse:
+//! - Commission rate limits (min/max bounds)
+//! - Vesting duration limits (1 day to 1 year)
+//! - Oracle staleness limits (5 minutes max age)
+//!
+//! ## Performance Constants
+//!
+//! Optimization parameters for batch processing and transaction handling:
+//! - Maximum batch sizes for efficient processing
+//! - Retry attempts and timeouts for reliability
+//! - Minimum liquidity requirements for stability
+
 use anchor_lang::prelude::constant;
 
 /// Seed for the `LaunchState` PDA in the `factory-program`.

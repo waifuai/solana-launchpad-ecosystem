@@ -1,3 +1,36 @@
+//! # Barter DEX Program State Definitions
+//!
+//! This module defines the state structures used by the oracle-based DEX program,
+//! including liquidity pool configurations, oracle provider types, and price tracking.
+//! These structures store all persistent data for the AI-powered exchange system.
+//!
+//! ## Key Structures
+//!
+//! - [`LiquidityPool`]: Enhanced liquidity pool with multi-oracle support and dynamic fees
+//! - [`OracleProvider`]: Enumeration of supported oracle types (Pyth, Switchboard, AI, Hybrid)
+//!
+//! ## Multi-Oracle Architecture
+//!
+//! The program supports multiple price sources simultaneously:
+//! - **Pyth Network**: Professional oracle with 40% weight in hybrid calculations
+//! - **Switchboard**: Decentralized oracle network with 35% weight
+//! - **AI Oracle**: Custom AI-driven pricing with 25% weight
+//! - **Hybrid Mode**: Weighted average calculation from all available sources
+//!
+//! ## Advanced Features
+//!
+//! - **Dynamic Fee System**: Fees automatically adjust based on price volatility
+//! - **Price History Tracking**: 24-hour circular buffer for volatility calculations
+//! - **Confidence Intervals**: Price reliability tracking and validation
+//! - **Staleness Protection**: Automatic rejection of outdated price data
+//!
+//! ## Security Features
+//!
+//! - Comprehensive overflow/underflow protection in all calculations
+//! - Timestamp-based oracle staleness validation
+//! - Configurable volatility thresholds for fee adjustment
+//! - Weighted price aggregation with fallback mechanisms
+
 use anchor_lang::prelude::*;
 use genesis_common::constants::*;
 
