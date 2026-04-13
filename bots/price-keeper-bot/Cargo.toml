@@ -12,7 +12,7 @@ solana-sdk = "2.3.1"
 anchor-client = "0.31.1"
 # Barter DEX program crate for type definitions and program ID.
 barter-dex-program = { path = "../../programs/barter-dex-program" }
-# HTTP client to call the Gemini API.
+# HTTP client to call the OpenRouter API.
 reqwest = "0.12"
 # For JSON serialization and deserialization.
 serde_json = "1.0"

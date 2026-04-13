@@ -9,7 +9,7 @@
 //! The bot implements the following workflow:
 //! 1. Fetches all active liquidity pools from the barter DEX program
 //! 2. For each pool, constructs AI prompts with token mint addresses
-//! 3. Queries either OpenRouter or Gemini AI APIs for exchange rate calculations
+//! 3. Queries the OpenRouter API for exchange rate calculations
 //! 4. Parses AI responses to extract precise price data (with 9 decimal precision)
 //! 5. Submits transactions to update oracle prices on-chain for each pool
 //!
@@ -22,19 +22,16 @@
 //!
 //! ## AI Integration
 //!
-//! The bot supports two AI providers for price calculation:
-//! - **OpenRouter**: Default provider using various models (default: deepseek-chat)
-//! - **Gemini**: Google's Gemini 2.5 Pro API for price analysis
+//! The bot uses OpenRouter for price calculations.
 //!
 //! ## Configuration
 //!
 //! API keys can be configured via:
-//! - Environment variables (`OPENROUTER_API_KEY`, `GEMINI_API_KEY`)
-//! - Files in user home directory (`~/.api-openrouter`, `~/.api-gemini`)
+//! - Environment variable `OPENROUTER_API_KEY`
+//! - File in user home directory `~/.api-openrouter`
 //!
 //! Model preferences can be set via:
 //! - `~/.model-openrouter` for OpenRouter model selection
-//! - `~/.model-gemini` for Gemini model selection
 
 use anchor_client::{Client, Program, Cluster};
 use barter_dex_program::accounts::UpdateOraclePrice;
@@ -45,52 +42,13 @@ use solana_sdk::signer::{keypair::Keypair, Signer};
 use std::fs;
 use std::rc::Rc;
 
-#[derive(Serialize)]
-struct GoogleGenRequest {
-    contents: Vec<GoogleGenContent>,
-}
-#[derive(Serialize)]
-struct GoogleGenContent {
-    parts: Vec<GoogleGenPart>,
-}
-#[derive(Serialize)]
-struct GoogleGenPart {
-    text: String,
-}
-#[derive(Deserialize, Debug)]
-struct GoogleGenResponse {
-    candidates: Vec<GoogleGenCandidate>,
-}
-#[derive(Deserialize, Debug)]
-struct GoogleGenCandidate {
-    content: GoogleGenRespContent,
-}
-#[derive(Deserialize, Debug)]
-struct GoogleGenRespContent {
-    parts: Vec<GoogleGenRespPart>,
-}
-#[derive(Deserialize, Debug)]
-struct GoogleGenRespPart {
-    text: String,
-}
-
-enum Provider {
-    OpenRouter,
-    Gemini,
-}
-
 fn read_first_line(path: &std::path::Path) -> Option<String> {
     std::fs::read_to_string(path).ok().map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
 }
 
 fn resolve_openrouter_model() -> String {
     let p = dirs::home_dir().unwrap_or_default().join(".model-openrouter");
-    read_first_line(&p).unwrap_or_else(|| "deepseek/deepseek-chat-v3-0324:free".to_string())
-}
-
-fn resolve_gemini_model() -> String {
-    let p = dirs::home_dir().unwrap_or_default().join(".model-gemini");
-    read_first_line(&p).unwrap_or_else(|| "gemini-2.5-pro".to_string())
+    read_first_line(&p).unwrap_or_else(|| "openrouter/free".to_string())
 }
 
 fn resolve_openrouter_api_key() -> Option<String> {
@@ -104,21 +62,6 @@ fn resolve_openrouter_api_key() -> Option<String> {
     read_first_line(&p)
 }
 
-fn resolve_gemini_api_key() -> Option<String> {
-    if let Ok(v) = std::env::var("GEMINI_API_KEY") {
-        let t = v.trim().to_string();
-        if !t.is_empty() {
-            return Some(t);
-        }
-    }
-    let p = dirs::home_dir().unwrap_or_default().join(".api-gemini");
-    read_first_line(&p)
-}
-
-fn default_provider() -> Provider {
-    Provider::OpenRouter
-}
-
 fn price_prompt(mint_a: &Pubkey, mint_b: &Pubkey) -> String {
     format!(
         "You are a decentralized exchange price oracle. Your task is to provide the fair market exchange rate between two Solana tokens.
@@ -130,7 +73,7 @@ Provide the price as a u64 integer with 9 decimal places of precision. For examp
 
 For this simulation, assume Token A is slightly more valuable than Token B. Return a price between 1.1 and 1.3.
 
-Respond with ONLY a JSON object in the format: {{\"price_of_a_in_b\": <u64_number>}}",
+Respond with ONLY a JSON object in the format: {{\\\"price_of_a_in_b\\\": <u64_number>}}",
         mint_a, mint_b
     )
 }
@@ -198,60 +141,15 @@ async fn get_price_openrouter(
     Ok(price)
 }
 
-async fn get_price_gemini(
-    client: &reqwest::Client,
-    model_name: &str,
-    api_key: &str,
-    prompt: &str,
-) -> Result<u64, Box<dyn std::error::Error>> {
-    let api_url = format!(
-        "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent",
-        model_name
-    );
-    let request_body = GoogleGenRequest {
-        contents: vec![GoogleGenContent {
-            parts: vec![GoogleGenPart { text: prompt.to_string() }],
-        }],
-    };
-    let res = client.post(&api_url).bearer_auth(api_key).json(&request_body).send().await?;
-    if !res.status().is_success() {
-        let body = res.text().await.unwrap_or_default();
-        return Err(format!("Gemini API error: {}", body).into());
-    }
-    let data: GoogleGenResponse = res.json().await?;
-    let content = data
-        .candidates
-        .get(0)
-        .and_then(|c| c.content.parts.get(0))
-        .map(|p| p.text.trim().to_string())
-        .ok_or("No content from Gemini")?;
-    let clean = content.replace("```json", "").replace("```", "").trim().to_string();
-    let v: serde_json::Value = serde_json::from_str(&clean)?;
-    let price = v["price_of_a_in_b"]
-        .as_u64()
-        .ok_or("Failed to parse price_of_a_in_b")?;
-    Ok(price)
-}
-
 async fn get_exchange_rate(
     client: &reqwest::Client,
     mint_a: &Pubkey,
     mint_b: &Pubkey,
 ) -> Result<u64, Box<dyn std::error::Error>> {
-    let provider = default_provider();
     let prompt = price_prompt(mint_a, mint_b);
-    match provider {
-        Provider::OpenRouter => {
-            let model = resolve_openrouter_model();
-            let key = resolve_openrouter_api_key().ok_or("Missing OpenRouter API key (OPENROUTER_API_KEY or ~/.api-openrouter)")?;
-            get_price_openrouter(client, &model, &key, &prompt).await
-        }
-        Provider::Gemini => {
-            let model = resolve_gemini_model();
-            let key = resolve_gemini_api_key().ok_or("Missing Gemini API key (GEMINI_API_KEY or ~/.api-gemini)")?;
-            get_price_gemini(client, &model, &key, &prompt).await
-        }
-    }
+    let model = resolve_openrouter_model();
+    let key = resolve_openrouter_api_key().ok_or("Missing OpenRouter API key (OPENROUTER_API_KEY or ~/.api-openrouter)")?;
+    get_price_openrouter(client, &model, &key, &prompt).await
 }
 
 #[tokio::main]

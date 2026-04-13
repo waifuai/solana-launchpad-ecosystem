@@ -2,7 +2,7 @@
   "schemaName": "solana-monorepo-manifest",
   "schemaVersion": "2.0.0",
   "repositoryName": "solana-launchpad-ecosystem-rust",
-  "systemOverview": "A multi-program Solana ecosystem written in Rust, architected for AI-driven tokenomics. Core economic parameters, such as DEX pricing and affiliate commissions, are not calculated on-chain but are provided by off-chain bots using the Gemini 2.5 Pro API. This creates a hybrid system where on-chain programs act as executors for AI-generated instructions.",
+  "systemOverview": "A multi-program Solana ecosystem written in Rust, architected for AI-driven tokenomics. Core economic parameters, such as DEX pricing and affiliate commissions, are not calculated on-chain but are provided by off-chain bots using the OpenRouter API. This creates a hybrid system where on-chain programs act as executors for AI-generated instructions.",
   "components": [
     {
       "name": "factory-program",
@@ -39,14 +39,14 @@
       "name": "optimizer-bot",
       "path": "bots/optimizer-bot",
       "type": "off-chain-service",
-      "purpose": "Uses the Gemini 2.5 Pro API to determine the optimal commission rate for affiliates. It prompts the AI with on-chain data (sales volume, token price) and sends a transaction to the `affiliate-program` to update the rate.",
+      "purpose": "Uses the OpenRouter API to determine the optimal commission rate for affiliates. It prompts the AI with on-chain data (sales volume, token price) and sends a transaction to the `affiliate-program` to update the rate.",
       "interactsWith": ["affiliate-program"]
     },
     {
       "name": "price-keeper-bot",
       "path": "bots/price-keeper-bot",
       "type": "off-chain-service",
-      "purpose": "Acts as the price oracle for the DEX. It periodically prompts the Gemini 2.5 Pro API to get the fair market exchange rate for token pairs and pushes this price on-chain by calling the `update_oracle_price` instruction in the `barter-dex-program`."
+      "purpose": "Acts as the price oracle for the DEX. It periodically prompts the OpenRouter API to get the fair market exchange rate for token pairs and pushes this price on-chain by calling the `update_oracle_price` instruction in the `barter-dex-program`."
     }
   ],
   "sharedCrates": [
@@ -59,7 +59,7 @@
   "keyConcepts": [
     {
       "term": "AI Oracle",
-      "definition": "A design pattern where an off-chain service (bot) uses an external AI/LLM (like Gemini) to determine a value (e.g., price, rate) and writes it to the blockchain. On-chain programs then read this value trustfully."
+      "definition": "A design pattern where an off-chain service (bot) uses an external AI/LLM (via OpenRouter) to determine a value (e.g., price, rate) and writes it to the blockchain. On-chain programs then read this value trustfully."
     },
     {
       "term": "Hybrid Architecture",

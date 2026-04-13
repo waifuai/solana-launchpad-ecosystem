@@ -2,7 +2,7 @@
 
 ## Abstract
 
-This document outlines the architecture of a novel, multi-program Solana ecosystem that integrates deterministic on-chain logic with intelligent, AI-driven off-chain decision-making. The system functions as a comprehensive token launchpad, featuring an ICO factory, a dynamic affiliate system, and a unique barter-style DEX. The core innovation lies in its hybrid model: while the Solana programs handle asset management and execution with blockchain's characteristic immutability, off-chain bots leverage the Gemini 2.5 Pro API to analyze on-chain data and make sophisticated economic adjustments. This creates a responsive, optimized, and automated tokenomic environment where parameters like affiliate commission rates and DEX pricing are not static but are intelligently managed by AI.
+This document outlines the architecture of a novel, multi-program Solana ecosystem that integrates deterministic on-chain logic with intelligent, AI-driven off-chain decision-making. The system functions as a comprehensive token launchpad, featuring an ICO factory, a dynamic affiliate system, and a unique barter-style DEX. The core innovation lies in its hybrid model: while the Solana programs handle asset management and execution with blockchain's characteristic immutability, off-chain bots leverage the OpenRouter API to analyze on-chain data and make sophisticated economic adjustments. This creates a responsive, optimized, and automated tokenomic environment where parameters like affiliate commission rates and DEX pricing are not static but are intelligently managed by AI.
 
 ---
 
@@ -29,22 +29,22 @@ This paper will detail the architecture of each component and illustrate how the
 The core of the project is the separation of duties between the on-chain and off-chain worlds.
 
 *   **On-Chain (Solana)**: The Solana programs are the "source of truth." They custody all assets (SOL and SPL tokens) in Program Derived Accounts (PDAs), enforce rules, and execute transactions atomically. They are deterministic and secure.
-*   **Off-Chain (AI Bots)**: The bots are the "brains." They run on external servers, read the state of the on-chain programs, send this data to the Gemini AI for analysis, and submit transactions back to the blockchain to update key economic parameters.
+*   **Off-Chain (AI Bots)**: The bots are the "brains." They run on external servers, read the state of the on-chain programs, send this data to the OpenRouter AI for analysis, and submit transactions back to the blockchain to update key economic parameters.
 
 This interaction can be visualized as follows:
 
 ```mermaid
 graph TD
     subgraph "Off-Chain (AI Decision-Making)"
-        GeminiAPI[Gemini 2.5 Pro API]
+        OpenRouterAPI[OpenRouter API]
         OptimizerBot[Optimizer Bot]
         PriceKeeperBot[Price Keeper Bot]
 
-        OptimizerBot --(HTTP POST with on-chain data)--> GeminiAPI
-        GeminiAPI --(JSON response with new rate)--> OptimizerBot
+        OptimizerBot --(HTTP POST with on-chain data)--> OpenRouterAPI
+        OpenRouterAPI --(JSON response with new rate)--> OptimizerBot
 
-        PriceKeeperBot --(HTTP POST with token info)--> GeminiAPI
-        GeminiAPI --(JSON response with price)--> PriceKeeperBot
+        PriceKeeperBot --(HTTP POST with token info)--> OpenRouterAPI
+        OpenRouterAPI --(JSON response with price)--> PriceKeeperBot
     end
 
     subgraph "On-Chain (Solana)"
@@ -119,7 +119,7 @@ This program implements a novel oracle-based DEX, which is fundamentally differe
 
 ## 4. Off-Chain AI Components
 
-The off-chain bots are Rust applications that use the `reqwest` library for HTTP calls to the Gemini API and the `anchor-client` library to interact with the Solana programs.
+The off-chain bots are Rust applications that use the `reqwest` library for HTTP calls to the OpenRouter API and the `anchor-client` library to interact with the Solana programs.
 
 ### 4.1 `optimizer-bot`
 
@@ -127,8 +127,8 @@ This bot's purpose is to dynamically manage affiliate commission rates to reward
 
 *   **Workflow**:
     1.  **Fetch Data**: The bot queries the `affiliate-program` to get the current on-chain state (`AffiliateInfo`) for a given affiliate, including their `total_referred_volume` and `current_rate_bps`.
-    2.  **Query AI**: It constructs a detailed prompt for the Gemini 2.5 Pro API, providing the on-chain data as context. The prompt asks the AI to act as a "Solana tokenomics expert" and suggest a new, optimal commission rate.
-    3.  **Parse Response**: It parses the JSON response from the Gemini API to extract the suggested `new_rate_bps`.
+    2.  **Query AI**: It constructs a detailed prompt for the OpenRouter API, providing the on-chain data as context. The prompt asks the AI to act as a "Solana tokenomics expert" and suggest a new, optimal commission rate.
+    3.  **Parse Response**: It parses the JSON response from the OpenRouter API to extract the suggested `new_rate_bps`.
     4.  **Submit Transaction**: If the suggested rate is different from the current rate, the bot builds, signs, and sends a transaction to the `affiliate-program` calling the `set_commission_rate` instruction with the new rate.
 
 ### 4.2 `price-keeper-bot`
@@ -137,7 +137,7 @@ This bot functions as a decentralized price oracle for the `barter-dex-program`.
 
 *   **Workflow**:
     1.  **Fetch Data**: The bot queries the `barter-dex-program` to get the list of active liquidity pools and the mint addresses for each pair (`mint_a`, `mint_b`).
-    2.  **Query AI**: It constructs a prompt asking the Gemini 2.5 Pro API to act as a "decentralized exchange price oracle" and determine the fair market exchange rate between the two tokens.
+    2.  **Query AI**: It constructs a prompt asking the OpenRouter API to act as a "decentralized exchange price oracle" and determine the fair market exchange rate between the two tokens.
     3.  **Parse Response**: It parses the JSON response to extract the `price_of_a_in_b`, formatted as a `u64` integer with 9 decimals of precision.
     4.  **Submit Transaction**: The bot sends a transaction to the `barter-dex-program`, calling the `update_oracle_price` instruction for the corresponding pool. This updates the on-chain price that all users will use for swaps.
 
