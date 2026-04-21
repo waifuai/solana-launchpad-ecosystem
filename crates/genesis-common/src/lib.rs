@@ -31,3 +31,5 @@ pub mod constants;
 
 /// Utility functions for common operations across programs
 pub mod utils;
+
+pub use utils::ErrorCode;
