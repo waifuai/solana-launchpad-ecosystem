@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Program: affiliate-program</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 2rem; line-height: 1.6; color: #e6edf3; background: #0d1117; }
+  pre { background: #161b22; padding: 1rem; border-radius: 6px; overflow-x: auto; border: 1px solid #30363d; }
+  code { background: #161b22; padding: 0.2em 0.4em; border-radius: 3px; font-size: 0.9em; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+  th, td { border: 1px solid #30363d; padding: 8px; text-align: left; }
+  th { background: #161b22; }
+  a { color: #58a6ff; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  h1, h2, h3 { border-bottom: 1px solid #30363d; padding-bottom: 0.3em; }
+  blockquote { border-left: 4px solid #30363d; padding-left: 1rem; color: #8b949e; }
+  .back-link { display: inline-block; margin-bottom: 1rem; color: #8b949e; font-size: 0.9rem; }
+  img { max-width: 100%; }
+</style>
+
+</head>
+<body>
+<a class="back-link" href="index.html">&larr; Back to index</a>
+<h1>Program: affiliate-program</h1>
+<h2>Purpose</h2>
+<p>This program manages an on-chain affiliate system. It allows wallets to register as affiliates, stores their commission rate, and has an instruction that can be called via CPI by other programs (like <code>factory-program</code>) to process commission payouts.</p>
+<h2>State Accounts</h2>
+<h3>1. <code>AffiliateInfo</code></h3>
+<ul>
+<li><strong>PDA Seeds</strong>: <code>["affiliate_info", affiliate_pubkey]</code></li>
+<li><strong>Purpose</strong>: Stores the data for a single affiliate.</li>
+<li><strong>Fields</strong>:<ul>
+<li><code>affiliate_key: Pubkey</code> - The public key of the affiliate's wallet.</li>
+<li><code>total_referred_volume: u64</code> - The cumulative amount of tokens purchased through this affiliate's referrals.</li>
+<li><code>commission_rate_bps: u16</code> - The commission rate in basis points (e.g., 1000 = 10%).</li>
+</ul>
+</li>
+</ul>
+<h2>Instructions</h2>
+<h3>1. <code>register_affiliate</code></h3>
+<ul>
+<li><strong>Description</strong>: Creates a new <code>AffiliateInfo</code> account for the signing wallet, registering them as an affiliate with a default commission rate.</li>
+<li><strong>Parameters</strong>: None.</li>
+</ul>
+<h3>2. <code>set_commission_rate</code></h3>
+<ul>
+<li><strong>Description</strong>: Allows an affiliate (or a designated authority, though here it's the affiliate themselves) to update their own commission rate. In a real-world scenario, this would likely be restricted to a program admin.</li>
+<li><strong>Parameters</strong>:<ul>
+<li><code>new_rate_bps: u16</code></li>
+</ul>
+</li>
+</ul>
+<h3>3. <code>process_commission</code></h3>
+<ul>
+<li><strong>Description</strong>: <strong>This is a CPI-only instruction.</strong> It calculates the commission amount based on the affiliate's rate and the purchased token amount. It then signs a <code>mint_to</code> instruction to issue the commission tokens to the affiliate's token account. The mint authority is the <code>launch_state</code> account from the calling program.</li>
+<li><strong>Parameters</strong>:<ul>
+<li><code>purchased_tokens: u64</code></li>
+</ul>
+</li>
+</ul>
+<h2>Errors</h2>
+<ul>
+<li><code>InvalidRate</code>: The provided commission rate is out of the valid range (0-10000).</li>
+<li><code>Overflow</code>: A mathematical calculation resulted in an overflow.</li>
+<li><code>AuthorityMismatch</code>: The signer does not have authority over the account.</li>
+</ul>
+</body>
+</html>

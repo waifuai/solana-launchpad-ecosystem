@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Program: factory-program</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 2rem; line-height: 1.6; color: #e6edf3; background: #0d1117; }
+  pre { background: #161b22; padding: 1rem; border-radius: 6px; overflow-x: auto; border: 1px solid #30363d; }
+  code { background: #161b22; padding: 0.2em 0.4em; border-radius: 3px; font-size: 0.9em; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+  th, td { border: 1px solid #30363d; padding: 8px; text-align: left; }
+  th { background: #161b22; }
+  a { color: #58a6ff; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  h1, h2, h3 { border-bottom: 1px solid #30363d; padding-bottom: 0.3em; }
+  blockquote { border-left: 4px solid #30363d; padding-left: 1rem; color: #8b949e; }
+  .back-link { display: inline-block; margin-bottom: 1rem; color: #8b949e; font-size: 0.9rem; }
+  img { max-width: 100%; }
+</style>
+
+</head>
+<body>
+<a class="back-link" href="index.html">&larr; Back to index</a>
+<h1>Program: factory-program</h1>
+<h2>Purpose</h2>
+<p>This program implements an ICO (Initial Coin Offering) launchpad. It allows a project authority to create a new token where the price is determined by a linear bonding curve. It is the mint authority for the token it creates and is responsible for processing purchases and CPI-calling the affiliate program to handle commissions.</p>
+<h2>State Accounts</h2>
+<h3>1. <code>LaunchState</code></h3>
+<ul>
+<li><strong>PDA Seeds</strong>: <code>["launch_state", authority_pubkey, token_mint_pubkey]</code></li>
+<li><strong>Purpose</strong>: Stores the configuration and live state of a single ICO launch.</li>
+<li><strong>Fields</strong>:<ul>
+<li><code>authority: Pubkey</code> - The wallet authorized to withdraw SOL.</li>
+<li><code>token_mint: Pubkey</code> - The mint address of the token being sold.</li>
+<li><code>sol_vault_bump: u8</code> - The bump seed for the SOL vault PDA.</li>
+<li><code>initial_price: u64</code> - The starting price of the token in lamports per token.</li>
+<li><code>slope: u64</code> - The value by which the price increases for each token sold.</li>
+<li><code>tokens_sold: u64</code> - The total number of tokens sold to date.</li>
+</ul>
+</li>
+</ul>
+<h2>Instructions</h2>
+<h3>1. <code>create_launch</code></h3>
+<ul>
+<li><strong>Description</strong>: Initializes a new ICO. Creates the <code>LaunchState</code> account and the <code>token_mint</code>.</li>
+<li><strong>Parameters</strong>:<ul>
+<li><code>initial_price: u64</code></li>
+<li><code>slope: u64</code></li>
+</ul>
+</li>
+</ul>
+<h3>2. <code>buy_tokens</code></h3>
+<ul>
+<li><strong>Description</strong>: Allows a user to buy tokens by sending SOL. Calculates the token amount based on the current price from the bonding curve, transfers SOL to the vault, and mints tokens to the buyer. If an affiliate is provided, it triggers a CPI call.</li>
+<li><strong>Parameters</strong>:<ul>
+<li><code>sol_amount: u64</code></li>
+<li><code>affiliate_key: Option&lt;Pubkey&gt;</code></li>
+</ul>
+</li>
+</ul>
+<h3>3. <code>withdraw_sol</code></h3>
+<ul>
+<li><strong>Description</strong>: Allows the authority to withdraw all accumulated SOL from the vault.</li>
+<li><strong>Parameters</strong>: None.</li>
+</ul>
+<h2>Errors</h2>
+<ul>
+<li><code>InvalidAmount</code>: Input amount is zero or invalid.</li>
+<li><code>Overflow</code>: A mathematical calculation resulted in an overflow.</li>
+<li><code>InsufficientFunds</code>: The SOL amount is too small to purchase any tokens at the current price.</li>
+<li><code>AuthorityMismatch</code>: The signer of <code>withdraw_sol</code> is not the launch authority.</li>
+<li><code>AffiliateMismatch</code>: The provided <code>affiliate_key</code> does not match the public key in the <code>affiliate_info</code> account.</li>
+</ul>
+</body>
+</html>

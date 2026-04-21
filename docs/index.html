@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>solana-launchpad-ecosystem</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --card-bg: #161b22;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --accent2: #7ee787;
+  --accent3: #d2a8ff;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding: 2rem; }
+.container { max-width: 1100px; margin: 0 auto; }
+header { text-align: center; margin-bottom: 3rem; padding: 2rem 0; border-bottom: 1px solid var(--border); }
+header h1 { font-size: 2.5rem; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 0.5rem; }
+header p { color: var(--text-muted); font-size: 1.1rem; }
+section { margin-bottom: 2.5rem; }
+h2 { font-size: 1.4rem; margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 0.5rem; }
+.count { font-size: 0.85rem; color: var(--text-muted); font-weight: 400; }
+.section-desc { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem; }
+.link-list { display: flex; flex-direction: column; gap: 0.25rem; }
+.link-list a { color: var(--accent); text-decoration: none; padding: 0.4rem 0.75rem; border-radius: 6px; transition: background 0.15s; font-size: 0.95rem; }
+.link-list a:hover { background: var(--card-bg); text-decoration: underline; }
+.readme-content { margin-top: 2rem; padding: 1.5rem; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border); }
+.readme-content h1 { font-size: 1.8rem; margin-bottom: 1rem; }
+.readme-content h2 { font-size: 1.3rem; }
+.readme-content pre { background: var(--bg); padding: 1rem; border-radius: 6px; overflow-x: auto; }
+.readme-content code { background: var(--bg); padding: 0.2em 0.4em; border-radius: 3px; }
+.readme-content pre code { background: none; }
+footer { text-align: center; color: var(--text-muted); font-size: 0.8rem; padding-top: 2rem; border-top: 1px solid var(--border); margin-top: 2rem; }
+img { max-width: 100%; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>solana-launchpad-ecosystem</h1>
+    <p>This repository contains a multi-program Solana ecosystem in Rust, architected for **AI-driven tokenomics**. For a complete, machine-readable architecture, see `manifest.json`.</p>
+  </header>
+    <section>
+    <h2>Documentation <span class="count">(2)</span></h2>
+    <p class="section-desc">Project documentation and guides</p>
+    <div class="link-list">
+      <a href="README.html">Solana Launchpad Ecosystem (Rust) - AI Edition</a>
+      <a href="whitepaper.html">Whitepaper: An AI-Hybrid Solana dApp Ecosystem</a>
+    </div>
+  </section>
+  <section>
+    <h2>Programs/Affiliate Program <span class="count">(1)</span></h2>
+    <p class="section-desc">Files in programs/affiliate-program/</p>
+    <div class="link-list">
+      <a href="programs/affiliate-program/README.html">Program: affiliate-program</a>
+    </div>
+  </section>
+  <section>
+    <h2>Programs/Barter Dex Program <span class="count">(1)</span></h2>
+    <p class="section-desc">Files in programs/barter-dex-program/</p>
+    <div class="link-list">
+      <a href="programs/barter-dex-program/README.html">Program: barter-dex-program</a>
+    </div>
+  </section>
+  <section>
+    <h2>Programs/Factory Program <span class="count">(1)</span></h2>
+    <p class="section-desc">Files in programs/factory-program/</p>
+    <div class="link-list">
+      <a href="programs/factory-program/README.html">Program: factory-program</a>
+    </div>
+  </section>
+  <section>
+    <h2>Project Overview</h2>
+    <div class="readme-content">
+<h1>Solana Launchpad Ecosystem (Rust) - AI Edition</h1>
+<p>This repository contains a multi-program Solana ecosystem in Rust, architected for <strong>AI-driven tokenomics</strong>. For a complete, machine-readable architecture, see <code>manifest.json</code>.</p>
+<h2>System Overview</h2>
+<p>This project demonstrates a hybrid blockchain architecture. Deterministic on-chain programs handle asset management, while off-chain bots use the <strong>OpenRouter API</strong> to make intelligent economic decisions.</p>
+<ul>
+<li><strong>ICO Factory:</strong> A standard bonding curve launchpad.</li>
+<li><strong>Affiliate System:</strong> An on-chain program whose commission rates are dynamically set by an AI bot.</li>
+<li><strong>Barter DEX:</strong> An <strong>oracle-based DEX</strong> that uses AI-generated prices for swaps, instead of a traditional AMM formula.</li>
+</ul>
+<h2>Repository Structure and Component Documentation</h2>
+<ul>
+<li><strong><code>manifest.json</code></strong>: <strong>Primary source of truth for the system architecture.</strong></li>
+<li><strong><code>programs/factory-program</code></strong>: The core ICO launchpad. (<a href="./programs/factory-program/README.html">See README</a>)</li>
+<li><strong><code>programs/affiliate-program</code></strong>: Manages affiliate data, controlled by AI. (<a href="./programs/affiliate-program/README.html">See README</a>)</li>
+<li><strong><code>programs/barter-dex-program</code></strong>: The AI-powered oracle DEX. (<a href="./programs/barter-dex-program/README.html">See README</a>)</li>
+<li><strong><code>bots/optimizer-bot</code></strong>: Off-chain bot to set affiliate commissions via AI.</li>
+<li><strong><code>bots/price-keeper-bot</code></strong>: Off-chain bot that acts as a price oracle for the DEX.</li>
+<li><strong><code>crates/genesis-common</code></strong>: Shared library of constants.</li>
+<li><strong><code>tests/integration.rs</code></strong>: End-to-end tests.</li>
+</ul>
+<h2>AI-Hybrid Interaction Diagram</h2>
+<pre><code class="language-mermaid">graph TD
+    subgraph &quot;Off-Chain (AI Decision-Making)&quot;
+        OpenRouterAPI[OpenRouter API]
+        OptimizerBot[Optimizer Bot]
+        PriceKeeperBot[Price Keeper Bot]
+
+        OptimizerBot --(HTTP POST with on-chain data)--&gt; OpenRouterAPI
+        OpenRouterAPI --(JSON response with new rate)--&gt; OptimizerBot
+
+        PriceKeeperBot --(HTTP POST with token info)--&gt; OpenRouterAPI
+        OpenRouterAPI --(JSON response with price)--&gt; PriceKeeperBot
+    end
+
+    subgraph &quot;On-Chain (Solana)&quot;
+        AffiliateProgram[Affiliate Program]
+        BarterDEX[Barter DEX Program]
+        FactoryProgram[Factory Program]
+
+        User --(Buys Tokens)--&gt; FactoryProgram
+        User --(Swaps Tokens at AI Price)--&gt; BarterDEX
+    end
+
+    OptimizerBot --(TX: set_commission_rate)--&gt; AffiliateProgram
+    PriceKeeperBot --(TX: update_oracle_price)--&gt; BarterDEX
+</code></pre>
+<h2>Setup and Execution</h2>
+<ol>
+<li><strong>Prerequisites</strong>: Install Rust, Solana CLI, Anchor Framework (v0.28.0).</li>
+<li><strong>API Key</strong>: Create a file at <code>~/.api-openrouter</code> and place your OpenRouter API key inside it.</li>
+<li><strong>Build</strong>: <code>anchor build</code></li>
+<li><strong>Test</strong>: <code>cargo test-bpf -- --nocapture</code></li>
+</ol>
+    </div>
+  </section>
+
+  <section>
+    <h2>Source Code</h2>
+    <p class="section-desc">View the full repository on GitHub</p>
+    <div class="link-list">
+      <a href="https://github.com/waifuai/solana-launchpad-ecosystem" target="_blank">github.com/waifuai/solana-launchpad-ecosystem</a>
+    </div>
+  </section>
+  <footer>
+    <p>Generated for AI agent crawlability</p>
+  </footer>
+</div>
+</body>
+</html>
