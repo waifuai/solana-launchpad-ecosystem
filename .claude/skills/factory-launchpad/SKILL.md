@@ -31,4 +31,4 @@ An ICO/token-launch program letting an authority create a token sale with config
 
 ## Dependencies
 
-Depended on `genesis-common` (PDA seed constants, `math_utils::calculate_tokens_to_mint`/`calculate_commission_amount`, safe-checked arithmetic) and CPI'd into `affiliate-program`'s `process_commission` instruction. `genesis-common`'s Rust crate still exists (required by the other on-chain programs, if they're ever rebuilt) — see [genesis-common's Python port](../../shared/genesis_common.py) for the constants/math reimplemented for the off-chain bots.
+Depended on `genesis-common` (PDA seed constants, `math_utils::calculate_tokens_to_mint`/`calculate_commission_amount`, safe-checked arithmetic) and CPI'd into `affiliate-program`'s `process_commission` instruction. `genesis-common`'s Rust crate was deleted along with the on-chain programs (it would need to be rebuilt in Rust alongside them) — see [genesis-common's Python port](../../bots/shared/genesis_common.py) for the constants/math reimplemented for the off-chain bots.

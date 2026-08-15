@@ -33,4 +33,4 @@ A referral/commission system for the [factory-launchpad](../factory-launchpad/SK
 
 ## Dependencies
 
-Depended on `genesis-common` for `MAX_RATE_BPS`/`MIN_RATE_BPS`/`BPS_PRECISION` constants and safe-checked arithmetic. Called via CPI from [factory-launchpad](../factory-launchpad/SKILL.md)'s `buy_tokens`. Its `optimizer_bot.py` Python port (in `bots/`) is the off-chain AI-rate-tuning consumer described here — see [genesis-common's Python port](../../shared/genesis_common.py).
+Depended on `genesis-common` for `MAX_RATE_BPS`/`MIN_RATE_BPS`/`BPS_PRECISION` constants and safe-checked arithmetic. Called via CPI from [factory-launchpad](../factory-launchpad/SKILL.md)'s `buy_tokens`. Its `optimizer_bot.py` Python port (in `bots/`) is the off-chain AI-rate-tuning consumer described here — see [genesis-common's Python port](../../bots/shared/genesis_common.py).

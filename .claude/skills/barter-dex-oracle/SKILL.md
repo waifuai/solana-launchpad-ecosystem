@@ -32,4 +32,4 @@ An oracle-priced DEX, not a constant-product/AMM-formula DEX: swap prices come e
 
 ## Dependencies
 
-Depended on `genesis-common` for `ORACLE_PRICE_PRECISION`, `BPS_PRECISION`, `MAX_ORACLE_AGE_SECONDS`, and safe-checked arithmetic. Its `price-keeper-bot` Python port (in `bots/`) is the off-chain price-oracle consumer described here — see [genesis-common's Python port](../../shared/genesis_common.py).
+Depended on `genesis-common` for `ORACLE_PRICE_PRECISION`, `BPS_PRECISION`, `MAX_ORACLE_AGE_SECONDS`, and safe-checked arithmetic. Its `price_keeper_bot.py` Python port (in `bots/`) is the off-chain price-oracle consumer described here — see [genesis-common's Python port](../../bots/shared/genesis_common.py).
