@@ -1,8 +1,5 @@
 [workspace]
 members = [
-    "programs/factory-program",
-    "programs/affiliate-program",
-    "programs/barter-dex-program",
     "crates/genesis-common",
     # Bots rely on host networking stacks that can pull in OpenSSL on Windows.
     # Exclude bots from the default workspace build to allow program-test to compile cleanly.
